@@ -1,0 +1,2 @@
+# Crimiviz
+Chicago crimes visualizations
