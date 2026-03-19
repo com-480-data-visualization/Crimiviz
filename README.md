@@ -1,9 +1,12 @@
 # Crimiviz
-Chicago crimes visualizations
+This is the repository of our group Crimiviz about Chicago crimes visualizations.
 
-Based on this dataset : https://www.kaggle.com/datasets/aliafzal9323/chicago-crime-dataset-2024-2026
+# Dataset
+Our project is based on this dataset: https://www.kaggle.com/datasets/aliafzal9323/chicago-crime-dataset-2024-2026
 
-this dataset is produced by the police of chicago : https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data
+**Please download it and place it in the root folder as `chicago_crimes.csv`.**
+
+This dataset is produced by the Chicago Police Department: https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data
 
 # Milestone 1 (10%)
-see the *milestone1.pdf*
+see the `milestone1.pdf`.
