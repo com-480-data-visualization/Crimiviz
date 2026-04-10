@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chicago Crime Data Analysis</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg:           #0D1117;
+      --surface:      rgba(13, 17, 23, 0.82);
+      --surface-alt:  rgba(22, 32, 46, 0.82);
+      --border:       rgba(255, 255, 255, 0.10);
+      --accent:       #41B6E6;
+      --accent-pill:  rgba(65, 182, 230, 0.14);
+      --accent-ring:  rgba(65, 182, 230, 0.50);
+      --accent-glow:  rgba(65, 182, 230, 0.20);
+      --danger:       #E4002B;
+      --text:         #F8F9FA;
+      --text-dim:     #A8B4C0;
+      --muted:        #6B7A8A;
+      --font-d:       'Merriweather', Georgia, serif;
+      --font-m:       'Nunito Sans', system-ui, sans-serif;
+      --font-ui:      'Inter', Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(rgba(13, 17, 23, 0.80), rgba(13, 17, 23, 0.70)),
+        url('chicago_skyline.avif');
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
+      color: var(--text);
+      font-family: var(--font-m);
+      font-size: 14px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ─── NAVBAR ─────────────────────────────────── */
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .nav-inner {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 28px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .logo {
+      font-family: var(--font-d);
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .nav-sep {
+      background: transparent;
+      width: auto;
+      height: auto;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--danger);
+      line-height: 1;
+    }
+
+    .nav-sep::before {
+      content: '✶';
+    }
+
+    .tabs {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .tab-btn {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(248, 249, 250, 0.45);
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0 20px;
+      height: 52px;
+      cursor: pointer;
+      transition: color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+      white-space: nowrap;
+      box-shadow: inset 0 3px 0 transparent;
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: rgba(248, 249, 250, 0.80);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      background: rgba(65, 182, 230, 0.08);
+      box-shadow: inset 0 3px 0 var(--danger);
+    }
+
+    .nav-badge {
+      font-family: var(--font-m);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    /* ─── MAIN LAYOUT ─────────────────────────────── */
+
+    main {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 28px 28px 64px;
+    }
+
+    .tab-panel { display: none; }
+
+    .tab-panel.active {
+      display: block;
+      background: rgba(13, 17, 23, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 28px 28px 40px;
+    }
+
+    /* ─── SECTION HEADER ─────────────────────────── */
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-family: var(--font-d);
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    #tab-home .section-title { font-size: 34px; }
+    #tab-home .section-sub   { font-size: 13px; }
+
+    .section-sub {
+      font-family: var(--font-m);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.045em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ─── CARD GRID ───────────────────────────────── */
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    /* ─── NAVIGATION CARDS (glassmorphism) ─────────── */
+
+    .nav-card {
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 8px;
+      padding: 28px 22px 24px;
+      cursor: pointer;
+      transition:
+        border-color 0.22s ease,
+        box-shadow 0.22s ease,
+        transform 0.18s ease;
+      position: relative;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .nav-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 10%, rgba(65,182,230,0.35) 50%, transparent 90%);
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+
+    .nav-card:hover {
+      border-color: rgba(65, 182, 230, 0.40);
+      box-shadow:
+        0 0 0 1px rgba(65, 182, 230, 0.08),
+        0 8px 32px rgba(0, 0, 0, 0.50),
+        0 0 28px rgba(65, 182, 230, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .nav-card:hover::after { opacity: 1; }
+
+    .card-icon {
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    #tab-home .home-intro { font-size: 17px; line-height: 1.85; }
+    #tab-home .card-title { font-size: 22px; }
+    #tab-home .card-desc  { font-size: 14px; line-height: 1.7; }
+
+    .card-title {
+      font-family: var(--font-d);
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-arrow {
+      font-family: var(--font-m);
+      font-size: 15px;
+      color: var(--accent);
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .nav-card:hover .card-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+      line-height: 1.65;
+    }
+
+    /* ─── MAP TAB ──────────────────────────────────── */
+
+    .map-frame {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.50);
+    }
+
+    #leaflet-map {
+      height: 480px;
+      width: 100%;
+      display: block;
+    }
+
+    .map-banner {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255, 255, 255, 0.10);
+      padding: 9px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .banner-pulse {
+      display: none;
+    }
+
+    @keyframes banner-blink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.35; transform: scale(0.65); }
+    }
+
+    .map-banner span {
+      font-family: var(--font-m);
+      font-style: italic;
+      font-size: 12px;
+      color: rgba(248, 249, 250, 0.70);
+      letter-spacing: 0.02em;
+    }
+
+    /* ─── TRENDS TAB ───────────────────────────────── */
+
+    .chart-block {
+      padding-bottom: 28px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chart-block:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .chart-label {
+      font-family: var(--font-d);
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chart-meta {
+      font-family: var(--font-m);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.045em;
+      white-space: nowrap;
+    }
+
+    .chart-skeleton {
+      height: 240px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: linear-gradient(
+        90deg,
+        var(--surface)     25%,
+        var(--surface-alt) 50%,
+        var(--surface)     75%
+      );
+      background-size: 900px 100%;
+      animation: shimmer 1.9s infinite linear;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: -450px 0; }
+      100% { background-position: 450px 0; }
+    }
+
+    /* ─── INSIGHTS TAB ─────────────────────────────── */
+
+    .insight-card {
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 8px;
+      padding: 26px 22px 22px;
+      position: relative;
+      overflow: hidden;
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .insight-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.15) 50%, transparent 90%);
+    }
+
+    .insight-tag {
+      font-family: var(--font-m);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .insight-title {
+      font-family: var(--font-d);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+      flex: 1;
+    }
+
+    .insight-footer {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-m);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+
+    .insight-dot {
+      background: transparent;
+      width: auto;
+      height: auto;
+      border-radius: 0;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--danger);
+      line-height: 1;
+    }
+
+    .insight-dot::before {
+      content: '✶';
+    }
+
+    /* ─── HOME INTRO & DATA NOTE ─────────────────────── */
+
+    .home-intro {
+      font-family: var(--font-d);
+      font-style: italic;
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.75;
+      max-width: 780px;
+      margin-bottom: 28px;
+    }
+
+    .data-note {
+      margin-top: 28px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .data-note-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 16px;
+      align-items: baseline;
+    }
+
+    .data-note-label {
+      font-family: var(--font-m);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding-top: 1px;
+    }
+
+    .data-note-val {
+      font-family: var(--font-m);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .data-note-val em {
+      font-style: italic;
+      color: var(--text-dim);
+    }
+
+    /* ─── RESPONSIVE ───────────────────────────────── */
+
+    @media (max-width: 900px) {
+      .card-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .nav-inner { padding: 0 12px; flex-wrap: wrap; height: auto; }
+      .nav-badge { display: none; }
+      .logo { font-size: 15px; }
+      .tabs { position: static; transform: none; width: 100%; justify-content: center; border-top: 1px solid rgba(255,255,255,0.07); }
+      .tab-btn { height: 40px; padding: 0 14px; font-size: 10px; }
+      main { padding: 24px 16px 48px; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .section-sub { white-space: normal; }
+      .card-grid { grid-template-columns: 1fr; }
+      .section-title { font-size: 22px; }
+    }
+
+    @media (max-width: 480px) {
+      .tab-btn { padding: 4px 11px; font-size: 12px; }
+      #leaflet-map { height: 320px; }
+      .chart-skeleton { height: 180px; }
+      .chart-head { flex-direction: column; gap: 2px; }
+      .insight-card { min-height: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="logo">CrimiViz</div>
+      <div class="nav-sep"></div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="home">Home</button>
+        <button class="tab-btn" data-tab="map">Map</button>
+        <button class="tab-btn" data-tab="trends">Trends</button>
+        <button class="tab-btn" data-tab="insights">Insights</button>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ══ HOME ══════════════════════════════════════ -->
+    <div id="tab-home" class="tab-panel active">
+      <div class="section-header">
+        <h1 class="section-title">Chicago Crime Explorer</h1>
+        <span class="section-sub">Select a module to begin</span>
+      </div>
+      <p class="home-intro">This dashboard explores over two decades of crime incidents reported in Chicago, from 2001 to 2024. It is structured around three points of views : geography, time, and context. It tries to find patterns in how, when, and where crime concentrates across the city.</p>
+
+      <div class="card-grid">
+
+        <div class="nav-card" onclick="switchTab('map')">
+          <div class="card-title">Map <span class="card-arrow">→</span></div>
+          <p class="card-desc">Geographic distribution of incidents across Chicago neighborhoods, wards, and police districts.</p>
+        </div>
+
+        <div class="nav-card" onclick="switchTab('trends')">
+          <div class="card-title">Trends <span class="card-arrow">→</span></div>
+          <p class="card-desc">Temporal patterns, seasonality analysis, time-of-day rhythms, and crime type breakdowns.</p>
+        </div>
+
+        <div class="nav-card" onclick="switchTab('insights')">
+          <div class="card-title">Insights <span class="card-arrow">→</span></div>
+          <p class="card-desc">Analytical deep-dives: COVID disruption, election cycles, and major city events correlated with crime.</p>
+        </div>
+
+      </div>
+
+      <div class="data-note">
+        <div class="data-note-row">
+          <span class="data-note-label">Source</span>
+          <span class="data-note-val">Chicago Data Portal <em>Crimes : 2001 to Present</em></span>
+        </div>
+        <div class="data-note-row">
+          <span class="data-note-label">Volume</span>
+          <span class="data-note-val">~7.8 million reported incidents : updated daily</span>
+        </div>
+        <div class="data-note-row">
+          <span class="data-note-label">Scope</span>
+          <span class="data-note-val">All reported crimes extracted from the Chicago Police Department's CLEAR system. Excludes murders where data exists only in an additional dataset.</span>
+        </div>
+        <div class="data-note-row">
+          <span class="data-note-label">Choices</span>
+          <span class="data-note-val">Analysis focuses on reported incidents, not convictions. Arrest rates are included as a secondary signal. Geographic aggregation uses community areas (77 total) rather than individual addresses for privacy and legibility.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MAP ═══════════════════════════════════════ -->
+    <div id="tab-map" class="tab-panel">
+      <div class="section-header">
+        <h1 class="section-title">Geographic Distribution</h1>
+        <span class="section-sub">Incident mapping by location &middot; Filters coming soon</span>
+      </div>
+      <div class="map-frame">
+        <div id="leaflet-map"></div>
+        <div class="map-banner">
+          <div class="banner-pulse"></div>
+          <span>Geographic crime layers will appear here</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TRENDS ═════════════════════════════════════ -->
+    <div id="tab-trends" class="tab-panel">
+      <div class="section-header">
+        <h1 class="section-title">Temporal Patterns</h1>
+        <span class="section-sub">Seasonality &middot; Time of day &middot; Crime type breakdown</span>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-head">
+          <div class="chart-label">Seasonality of Crimes</div>
+          <div class="chart-meta">Monthly aggregates &middot; 2001–2024</div>
+        </div>
+        <div class="chart-skeleton"></div>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-head">
+          <div class="chart-label">Crimes by Time of Day</div>
+          <div class="chart-meta">24-hour distribution &middot; all incident types</div>
+        </div>
+        <div class="chart-skeleton"></div>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-head">
+          <div class="chart-label">Crime Type Distribution</div>
+          <div class="chart-meta">Proportional breakdown by primary type</div>
+        </div>
+        <div class="chart-skeleton"></div>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-head">
+          <div class="chart-label">Arrest Disparity Rates by Crime Type</div>
+          <div class="chart-meta">Arrest rate per incident &middot; stratified by offense category</div>
+        </div>
+        <div class="chart-skeleton"></div>
+      </div>
+
+    </div>
+
+    <!-- ══ INSIGHTS ═══════════════════════════════════ -->
+    <div id="tab-insights" class="tab-panel">
+      <div class="section-header">
+        <h1 class="section-title">Analytical Insights</h1>
+        <span class="section-sub">Contextual analysis &middot; External factor correlation</span>
+      </div>
+      <div class="card-grid">
+
+        <div class="insight-card">
+          <div class="insight-tag">Analysis 01</div>
+          <div class="insight-title">Pre &amp; Post COVID Analysis</div>
+          <div class="insight-footer"><div class="insight-dot"></div>Data coming soon</div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-tag">Analysis 02</div>
+          <div class="insight-title">Election Period Impact</div>
+          <div class="insight-footer"><div class="insight-dot"></div>Data coming soon</div>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-tag">Analysis 03</div>
+          <div class="insight-title">Major Chicago Events &amp; Crime Trends</div>
+          <div class="insight-footer"><div class="insight-dot"></div>Data coming soon</div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let mapInitialized = false;
+
+    function switchTab(id) {
+      document.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-panel').forEach(function(p) {
+        p.classList.remove('active');
+      });
+
+      var btn = document.querySelector('[data-tab="' + id + '"]');
+      var panel = document.getElementById('tab-' + id);
+      if (btn)   btn.classList.add('active');
+      if (panel) panel.classList.add('active');
+
+      if (id === 'map' && !mapInitialized) {
+        initMap();
+      }
+    }
+
+    function initMap() {
+      var map = L.map('leaflet-map', {
+        zoomControl: true,
+        scrollWheelZoom: true
+      }).setView([41.8827, -87.6233], 11);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      mapInitialized = true;
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        switchTab(btn.getAttribute('data-tab'));
+      });
+    });
+  </script>
+
+</body>
+</html>
