@@ -8,5 +8,9 @@ Our project is based on this dataset: https://www.kaggle.com/datasets/aliafzal93
 
 This dataset is produced by the Chicago Police Department: https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2/about_data
 
+# Website link
+
+https://chicagocrime.vercel.app/
+
 # Milestone 1 (10%)
 see the `milestone1.pdf`.
