@@ -14,3 +14,6 @@ https://chicagocrime.vercel.app/
 
 # Milestone 1 (10%)
 see the `milestone1.pdf`.
+
+# Milestone 2 (10%)
+see the `milestone2.pdf`.
