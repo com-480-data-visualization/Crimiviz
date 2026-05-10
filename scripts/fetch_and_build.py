@@ -42,8 +42,46 @@ def write_json(name: str, payload: Any) -> None:
 
 
 def build_community_area_aggregates() -> None:
-    """data/by_community_area.json — area × primary_type × hour counts."""
-    raise NotImplementedError
+    """data/by_community_area.json — area × primary_type × hour counts.
+
+    A single SODA query gives us at most 78 * 34 * 24 = 63 648 rows.
+    We page through it because Socrata caps a single response at 50k rows.
+    """
+    rows: list[dict[str, Any]] = []
+    offset = 0
+    while True:
+        page = fetch({
+            "$select": (
+                "community_area, primary_type, "
+                "date_extract_hh(date) AS hour, count(*) AS n"
+            ),
+            "$where": (
+                "community_area IS NOT NULL AND community_area != '0' "
+                "AND primary_type IS NOT NULL"
+            ),
+            "$group": "community_area, primary_type, hour",
+            "$order": "community_area, primary_type, hour",
+            "$limit": PAGE_SIZE,
+            "$offset": offset,
+        })
+        if not page:
+            break
+        rows.extend(page)
+        if len(page) < PAGE_SIZE:
+            break
+        offset += PAGE_SIZE
+        time.sleep(0.2)
+
+    cleaned = [
+        {
+            "ca": int(float(r["community_area"])),
+            "type": r["primary_type"],
+            "hour": int(r["hour"]),
+            "n": int(r["n"]),
+        }
+        for r in rows
+    ]
+    write_json("by_community_area.json", cleaned)
 
 
 def build_temporal_aggregates() -> None:
@@ -53,7 +91,20 @@ def build_temporal_aggregates() -> None:
 
 def build_meta() -> None:
     """data/meta.json — totals, date range, generated_at."""
-    raise NotImplementedError
+    from datetime import datetime, timezone
+
+    total = fetch({"$select": "count(*) AS n"})[0]["n"]
+    bounds = fetch({"$select": "min(date) AS min_date, max(date) AS max_date"})[0]
+    write_json(
+        "meta.json",
+        {
+            "total_rows": int(total),
+            "min_date": bounds["min_date"],
+            "max_date": bounds["max_date"],
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "source": SOCRATA_BASE,
+        },
+    )
 
 
 def main() -> int:
