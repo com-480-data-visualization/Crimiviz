@@ -86,7 +86,106 @@ def build_community_area_aggregates() -> None:
 
 def build_temporal_aggregates() -> None:
     """seasonality, time_of_day, crime_types, arrest_rates, covid_comparison."""
-    raise NotImplementedError
+    seasonality = fetch({
+        "$select": (
+            "date_extract_y(date) AS year, "
+            "date_extract_m(date) AS month, "
+            "count(*) AS n"
+        ),
+        "$group": "year, month",
+        "$order": "year, month",
+        "$limit": 500,
+    })
+    write_json(
+        "seasonality.json",
+        [
+            {"year": int(r["year"]), "month": int(r["month"]), "n": int(r["n"])}
+            for r in seasonality
+        ],
+    )
+
+    time_of_day = fetch({
+        "$select": (
+            "primary_type, date_extract_hh(date) AS hour, count(*) AS n"
+        ),
+        "$where": "primary_type IS NOT NULL",
+        "$group": "primary_type, hour",
+        "$order": "primary_type, hour",
+        "$limit": 2000,
+    })
+    write_json(
+        "time_of_day.json",
+        [
+            {"type": r["primary_type"], "hour": int(r["hour"]), "n": int(r["n"])}
+            for r in time_of_day
+        ],
+    )
+
+    crime_types = fetch({
+        "$select": "primary_type, count(*) AS n",
+        "$where": "primary_type IS NOT NULL",
+        "$group": "primary_type",
+        "$order": "n DESC",
+        "$limit": 100,
+    })
+    write_json(
+        "crime_types.json",
+        [{"type": r["primary_type"], "n": int(r["n"])} for r in crime_types],
+    )
+
+    totals_by_type = {r["type"]: r["n"] for r in [
+        {"type": r["primary_type"], "n": int(r["n"])} for r in crime_types
+    ]}
+    arrests = fetch({
+        "$select": "primary_type, count(*) AS n",
+        "$where": "arrest = true AND primary_type IS NOT NULL",
+        "$group": "primary_type",
+        "$order": "n DESC",
+        "$limit": 100,
+    })
+    arrest_payload = []
+    for r in arrests:
+        ptype = r["primary_type"]
+        total = totals_by_type.get(ptype, 0)
+        arrests_n = int(r["n"])
+        rate = arrests_n / total if total else 0.0
+        arrest_payload.append({
+            "type": ptype,
+            "total": total,
+            "arrests": arrests_n,
+            "rate": round(rate, 4),
+        })
+    arrest_payload.sort(key=lambda r: r["rate"], reverse=True)
+    write_json("arrest_rates.json", arrest_payload)
+
+    def fetch_year_locations(year: int) -> dict[str, int]:
+        rows = fetch({
+            "$select": "location_description, count(*) AS n",
+            "$where": (
+                f"date_extract_y(date) = {year} "
+                "AND location_description IS NOT NULL"
+            ),
+            "$group": "location_description",
+            "$order": "n DESC",
+            "$limit": 500,
+        })
+        return {r["location_description"]: int(r["n"]) for r in rows}
+
+    pre = fetch_year_locations(2019)
+    post = fetch_year_locations(2023)
+    locations = sorted(set(pre) | set(post), key=lambda k: -(pre.get(k, 0) + post.get(k, 0)))
+    covid = []
+    for loc in locations[:25]:
+        a = pre.get(loc, 0)
+        b = post.get(loc, 0)
+        delta = (b - a) / a if a else None
+        covid.append({
+            "location": loc,
+            "y2019": a,
+            "y2023": b,
+            "delta": round(delta, 4) if delta is not None else None,
+        })
+    write_json("covid_comparison.json", covid)
 
 
 def build_meta() -> None:
