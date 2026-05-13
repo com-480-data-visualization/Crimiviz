@@ -1,0 +1,463 @@
+/* ── Newspaper “moving picture” animations ──
+   Default state shows the finished engraving (no animation).
+   Animations run ONLY while the user hovers that specific card. */
+
+/* shared transform origins / boxes */
+.photo .ping,
+.photo .hot,
+.photo .pop,
+.photo .row,
+.photo .cap { transform-box: fill-box; transform-origin: center; }
+.photo .row { transform-origin: left center; }
+.photo .cap { transform-origin: 30% 70%; }
+
+/* MAP — camera zoom + hand-drawn aerial map fading into incident dots */
+.photo .zoomGrp { transform-box: view-box; transform-origin: 140px 130px; }
+.photo .cityLabel text {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  fill: #2a1f12;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.photo .dotLayer { opacity: 0.05; }   /* hidden under city map at rest */
+
+@keyframes mapZoom {
+  0%, 100%   { transform: scale(1) translate(0, 0); }
+  29%, 58%   { transform: scale(1.55) translate(-22px, -10px); }
+  87.5%      { transform: scale(1) translate(0, 0); }
+}
+@keyframes cityFade {
+  0%, 100%    { opacity: 1; }
+  21%         { opacity: 0.7; }
+  37.5%, 50%  { opacity: 0; }
+  67%         { opacity: 0.7; }
+  87.5%       { opacity: 1; }
+}
+@keyframes dotsReveal {
+  0%, 100%    { opacity: 0.05; }
+  37.5%       { opacity: 0.85; }
+  50%         { opacity: 0.85; }
+  87.5%       { opacity: 0.05; }
+}
+.nav-card:hover .photo .zoomGrp  { animation: mapZoom 4s ease-in-out infinite; }
+.nav-card:hover .photo .cityMap  { animation: cityFade 4s ease-in-out infinite; }
+.nav-card:hover .photo .dotLayer { animation: dotsReveal 4s ease-in-out infinite; }
+
+/* MAP — pulsing incident pings, only on hover */
+@keyframes mapPing {
+  0%   { r: 1; opacity: 0.9; }
+  70%  { r: 14; opacity: 0; }
+  100% { r: 14; opacity: 0; }
+}
+@keyframes hotPulse {
+  0%, 100% { r: 2; fill: #7a1010; }
+  50%      { r: 3.4; fill: #c63232; }
+}
+@keyframes mapDrift {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-3px); }
+}
+.nav-card:hover .photo .ping    { animation: mapPing 2.4s ease-out infinite; }
+.nav-card:hover .photo .ping.p2 { animation-delay: 0.7s; }
+.nav-card:hover .photo .ping.p3 { animation-delay: 1.4s; }
+.nav-card:hover .photo .hot     { animation: hotPulse 1.6s ease-in-out infinite; }
+.nav-card:hover .photo .hot.h2  { animation-delay: 0.4s; }
+.nav-card:hover .photo .hot.h3  { animation-delay: 0.9s; }
+.nav-card:hover .photo .drift   { animation: mapDrift 4s ease-in-out infinite alternate; }
+
+/* TRENDS — line redraws, dashes scroll, dots re-pop, scan sweeps.
+   Default state is the finished chart; hover replays the build-in. */
+@keyframes drawLine {
+  from { stroke-dashoffset: 900; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes dashScroll {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -60; }
+}
+@keyframes dotPop {
+  0%   { opacity: 0; transform: scale(0); }
+  70%  { opacity: 1; transform: scale(1.4); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes scanSweep {
+  0%   { transform: translateX(-10%); opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { transform: translateX(110%); opacity: 0; }
+}
+.photo .draw { stroke-dasharray: 900; stroke-dashoffset: 0; }   /* full curve by default */
+.photo .scan { opacity: 0; }                                     /* sweep hidden by default */
+.nav-card:hover .photo .draw   { animation: drawLine 2s ease-in-out infinite alternate; }
+.nav-card:hover .photo .dash   { animation: dashScroll 2s linear infinite; }
+.nav-card:hover .photo .pop    { animation: dotPop 0.55s ease-in-out infinite alternate; }
+.nav-card:hover .photo .pop.d1 { animation-delay: 0.25s; }
+.nav-card:hover .photo .pop.d2 { animation-delay: 0.50s; }
+.nav-card:hover .photo .pop.d3 { animation-delay: 0.75s; }
+.nav-card:hover .photo .pop.d4 { animation-delay: 1.00s; }
+.nav-card:hover .photo .pop.d5 { animation-delay: 1.25s; }
+.nav-card:hover .photo .pop.d6 { animation-delay: 1.50s; }
+.nav-card:hover .photo .pop.d7 { animation-delay: 1.75s; }
+.nav-card:hover .photo .scan   { animation: scanSweep 3s ease-in-out infinite; }
+
+/* INSIGHTS — body lines reprint, drop-cap pulses.
+   Default state is the finished page; hover replays the print. */
+@keyframes printIn {
+  0%        { transform: scaleX(0); opacity: 0; }
+  15%       { transform: scaleX(1); opacity: 1; }
+  48%       { transform: scaleX(1); opacity: 1; }
+  63%       { transform: scaleX(0); opacity: 0; }
+  100%      { transform: scaleX(0); opacity: 0; }
+}
+@keyframes capPulse {
+  0%, 100% { fill: #7a1010; transform: rotate(-2deg); }
+  50%      { fill: #c63232; transform: rotate(0deg); }
+}
+.nav-card:hover .photo .row    { animation: printIn 4s ease-in-out infinite; }
+.nav-card:hover .photo .row.r1 { animation-delay: 0.05s; }
+.nav-card:hover .photo .row.r2 { animation-delay: 0.12s; }
+.nav-card:hover .photo .row.r3 { animation-delay: 0.19s; }
+.nav-card:hover .photo .row.r4 { animation-delay: 0.26s; }
+.nav-card:hover .photo .row.r5 { animation-delay: 0.33s; }
+.nav-card:hover .photo .row.r6 { animation-delay: 0.40s; }
+.nav-card:hover .photo .row.r7 { animation-delay: 0.47s; }
+.nav-card:hover .photo .row.r8 { animation-delay: 0.54s; }
+.nav-card:hover .photo .row.r9 { animation-delay: 0.61s; }
+.nav-card:hover .photo .row.r10{ animation-delay: 0.68s; }
+.nav-card:hover .photo .row.r11{ animation-delay: 0.75s; }
+.nav-card:hover .photo .row.r12{ animation-delay: 0.82s; }
+.nav-card:hover .photo .row.r13{ animation-delay: 0.89s; }
+.nav-card:hover .photo .cap    { animation: capPulse 2.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-card:hover .photo *,
+  .nav-card:hover .photo svg * { animation: none !important; }
+}
+
+.nav-card .caption{
+  position: absolute;
+  left: 12px; bottom: 10px;
+  z-index: 5;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 3px 8px;
+  max-width: 70%;
+}
+
+.nav-card .body{
+  padding: 22px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.nav-card .byline{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-card .byline .sep{ width: 10px; height: 1px; background: var(--ink-3); }
+.nav-card h3{
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 2.4vw, 38px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  margin: 0;
+  color: var(--ink);
+  text-wrap: balance;
+  transform-origin: left bottom;
+  transition:
+    transform var(--t-med) var(--ease),
+    letter-spacing var(--t-med) var(--ease),
+    color var(--t-med) var(--ease);
+}
+.nav-card:hover h3{
+  transform: scale(1.12);
+  letter-spacing: -0.024em;
+}
+.nav-card:hover h3 em{ color: #c63232; }
+.nav-card h3 em{ font-style: italic; color: var(--blood-2, #7a1010); }
+.nav-card p{
+  color: var(--ink-2);
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 36ch;
+  text-wrap: pretty;
+  transform-origin: left top;
+  transition: transform var(--t-med) var(--ease), color var(--t-med) var(--ease);
+}
+.nav-card:hover p{ transform: scale(1.05); color: var(--ink); }
+.nav-card .arrow{
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  transition: color var(--t-med) var(--ease);
+}
+.nav-card .arrow .line{
+  width: 14px; height: 1px; background: var(--ink); position: relative;
+  transition: width var(--t-med) var(--ease), background var(--t-med) var(--ease);
+}
+.nav-card .arrow .line::after{
+  content:""; position:absolute; right:-1px; top:-3px;
+  width: 7px; height: 7px;
+  border-right: 1px solid var(--ink);
+  border-top:   1px solid var(--ink);
+  transform: rotate(45deg);
+  transition: border-color var(--t-med) var(--ease);
+}
+.nav-card:hover .arrow .line{ width: 72px; background: var(--blood-2, #7a1010); }
+.nav-card:hover .arrow .line::after{ border-color: var(--blood-2, #7a1010); transform: translateX(6px) rotate(45deg); }
+.nav-card:hover .arrow{ color: var(--blood-2, #7a1010); transform: translateX(20px); }
+.nav-card .arrow{ transition: color var(--t-med) var(--ease), transform var(--t-med) var(--ease); }
+.nav-card .arrow .line::after{ transition: border-color var(--t-med) var(--ease), transform var(--t-med) var(--ease); }
+
+/* About data */
+.about{
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 48px;
+  border-top: 1px solid var(--rule);
+  padding: clamp(40px, 6vw, 64px) 0 clamp(64px, 9vw, 120px);
+}
+.about-title{
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+.about-title em { font-style: italic; color: var(--ink-2); }
+.about-body{ display: grid; grid-template-columns: 1fr 1fr; gap: 28px 48px; }
+.about-row{ display: grid; gap: 6px; }
+.about-row dt{
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin: 0;
+}
+.about-row dd{ margin: 0; font-family: var(--serif); font-size: 22px; line-height: 1.2; }
+.about-row dd em { font-style: italic; color: var(--ink-2); }
+
+/* ─────────────────────────────────────────────────────────────
+   Realistic blood — drips, droplets, KPI bleed
+   ───────────────────────────────────────────────────────────── */
+.blood-defs{ position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+
+.bleed-system{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.drip{
+  position: absolute;
+  top: 0;
+  width: 18px;
+  pointer-events: none;
+  filter: url(#bloodGoo) drop-shadow(0 1px 0.6px rgba(0,0,0,0.45)) drop-shadow(1px 0 1px rgba(0,0,0,0.18));
+  transform-origin: top center;
+}
+.drip-streak{
+  position: absolute;
+  top: 0; left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translateX(-50%);
+  background:
+    /* darker right edge — shadow side of the running drop */
+    linear-gradient(90deg,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 55%,
+      rgba(0,0,0,0.35) 100%),
+    /* solid top matching neck base, gradient only on the lower half */
+    linear-gradient(180deg,
+      #8a1414 0%,
+      #8a1414 50%,
+      #5a0a0a 82%,
+      #2a0202 100%);
+  filter: url(#bloodRough);
+  border-radius: 40% / 6px;
+  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 14px), transparent 100%);
+          mask-image: linear-gradient(to bottom, black 0, black calc(100% - 14px), transparent 100%);
+}
+.drip-streak::before{
+  /* wet specular highlight */
+  content: "";
+  position: absolute;
+  top: 6px; left: 22%;
+  width: 28%;
+  height: calc(100% - 24px);
+  background: linear-gradient(to bottom,
+    transparent 0,
+    rgba(255,180,180,0.95) 4%,
+    rgba(255,120,120,0.55) 22%,
+    transparent 70%);
+  opacity: 0.75;
+  border-radius: 60% / 8px;
+  filter: blur(0.4px);
+  mix-blend-mode: screen;
+}
+/* Diagonal "neck" that connects the bleed origin (interior) to the top of the
+   straight streak. Pivots from its bottom (where it joins the streak) so the
+   junction stays anchored. The goo filter on .drip merges neck+streak+tip. */
+.drip-neck{
+  position: absolute;
+  left: 50%;
+  top: calc(8px - var(--neck-h, 110px));
+  width: 100%;
+  height: var(--neck-h, 110px);
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.3) 100%),
+    linear-gradient(180deg,
+      #2a0202 0%, #5a0a0a 30%, #8a1414 100%);
+  filter: url(#bloodRough);
+  border-radius: 40% / 6px;
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 100%);
+          mask-image: linear-gradient(to bottom, transparent 0%, black 55%, black 100%);
+}
+.drip-neck::before{
+  content: "";
+  position: absolute;
+  top: 30%; left: 22%;
+  width: 28%; height: 65%;
+  background: linear-gradient(180deg, transparent, rgba(255,180,180,0.7) 40%, transparent 100%);
+  opacity: 0.55;
+  border-radius: 60% / 8px;
+  filter: blur(0.4px);
+  mix-blend-mode: screen;
+}
+.drip-left  .drip-neck{ transform: translateX(-50%) rotate(var(--neck-angle, 36deg)); }
+.drip-right .drip-neck{ transform: translateX(-50%) rotate(calc(-1 * var(--neck-angle, 36deg))); }
+.drip-tip{
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 28px;
+  background:
+    /* tiny bright catchlight near top-left */
+    radial-gradient(circle at 32% 22%, rgba(255,210,210,0.95) 0, rgba(255,180,180,0) 22%),
+    /* main 3D drop shading */
+    radial-gradient(ellipse at 36% 30%, #d23a3a 0, #9b1b1b 24%, #5a0a0a 60%, #1f0101 100%);
+  border-radius: 56% 44% 50% 50% / 36% 38% 64% 60%;
+  box-shadow:
+    inset -2px -3px 4px rgba(0,0,0,0.55),
+    inset 1px 1px 2px rgba(255,200,200,0.35),
+    0 2px 1.5px rgba(0,0,0,0.45),
+    0 4px 6px rgba(80,0,0,0.35);
+}
+.drip-tip::before{
+  content: "";
+  position: absolute;
+  top: 18%; left: 30%;
+  width: 18%; height: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,235,235,0.95) 0, rgba(255,200,200,0.0) 70%);
+  filter: blur(0.4px);
+}
+.drip-tip::after{
+  /* second smaller highlight on the bottom — drop's wet underside */
+  content: "";
+  position: absolute;
+  bottom: 18%; right: 26%;
+  width: 14%; height: 12%;
+  border-radius: 50%;
+  background: rgba(255,180,180,0.55);
+  filter: blur(0.6px);
+}
+.drip-spat{
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 30%, #c63232 0, #7a1010 50%, #2a0202 100%);
+  filter: url(#bloodRough) drop-shadow(0 0.5px 0.5px rgba(0,0,0,0.5));
+  pointer-events: none;
+}
+.drip-spat::after{
+  content: "";
+  position: absolute;
+  inset: 22% 40% 50% 18%;
+  border-radius: 50%;
+  background: rgba(255,200,200,0.7);
+  filter: blur(0.4px);
+}
+
+/* KPI bleed */
+.kpi{ position: relative; overflow: visible; }
+.kpi .kpi-num{ position: relative; }
+/* KPI bleeds removed */
+
+/* Drips are Home-only — Map/Trends/Insights stay clean */
+.drip{ display: none; }
+body[data-tab="home"] .drip{ display: block; }
+
+/* Splatter on hero */
+.hero{ position: relative; }
+.hero-splat{
+  position: absolute;
+  pointer-events: none;
+  filter: url(#bloodGoo);
+  z-index: 2;
+}
+.hero-splat-1{ top: -4px; right: 4%; width: 150px; height: 110px; }
+.hero-splat-2{ top: 118px; right: 14%; width: 76px; height: 60px; opacity: 0.78; }
+.hero-splat svg{ width: 100%; height: 100%; }
+
+/* Chicago coordinates badge */
+.coord-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  border: 1px solid var(--ink);
+  padding: 8px 12px;
+  width: fit-content;
+}
+.coord-badge .compass-mini{ width: 14px; height: 14px; }
+
+@media (max-width: 980px){
+  .masthead-main{ grid-template-columns: 1fr; }
+  .chi-flag{ max-width: 160px; margin: 0 auto; }
+  .chi-flag.right{ justify-self: center; }
+  .compass{ display: none; }
+}
+@media (max-width: 640px){
+  .drip{ display: none; }
+  .hero-splat-2{ display: none; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

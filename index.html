@@ -1,735 +1,870 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chicago Crime Data Analysis</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <style>
-    :root {
-      --bg:           #0D1117;
-      --surface:      rgba(13, 17, 23, 0.82);
-      --surface-alt:  rgba(22, 32, 46, 0.82);
-      --border:       rgba(255, 255, 255, 0.10);
-      --accent:       #41B6E6;
-      --accent-pill:  rgba(65, 182, 230, 0.14);
-      --accent-ring:  rgba(65, 182, 230, 0.50);
-      --accent-glow:  rgba(65, 182, 230, 0.20);
-      --danger:       #E4002B;
-      --text:         #F8F9FA;
-      --text-dim:     #A8B4C0;
-      --muted:        #6B7A8A;
-      --font-d:       'Merriweather', Georgia, serif;
-      --font-m:       'Nunito Sans', system-ui, sans-serif;
-      --font-ui:      'Inter', Helvetica, Arial, sans-serif;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      min-height: 100vh;
-      background-color: var(--bg);
-      background-image:
-        linear-gradient(rgba(13, 17, 23, 0.80), rgba(13, 17, 23, 0.70)),
-        url('chicago_skyline.avif');
-      background-attachment: fixed;
-      background-size: cover;
-      background-position: center;
-      color: var(--text);
-      font-family: var(--font-m);
-      font-size: 14px;
-      line-height: 1.55;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* ─── NAVBAR ─────────────────────────────────── */
-
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      background: rgba(13, 17, 23, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    }
-
-    .nav-inner {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 0 28px;
-      height: 52px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-    }
-
-    .logo {
-      font-family: var(--font-d);
-      font-weight: 700;
-      font-size: 17px;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      flex-shrink: 0;
-      user-select: none;
-    }
-
-    .nav-sep {
-      background: transparent;
-      width: auto;
-      height: auto;
-      flex-shrink: 0;
-      font-size: 11px;
-      color: var(--danger);
-      line-height: 1;
-    }
-
-    .nav-sep::before {
-      content: '✶';
-    }
-
-    .tabs {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: stretch;
-      gap: 0;
-    }
-
-    .tab-btn {
-      font-family: var(--font-ui);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: rgba(248, 249, 250, 0.45);
-      background: transparent;
-      border: none;
-      border-radius: 0;
-      padding: 0 20px;
-      height: 52px;
-      cursor: pointer;
-      transition: color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
-      white-space: nowrap;
-      box-shadow: inset 0 3px 0 transparent;
-    }
-
-    .tab-btn:hover:not(.active) {
-      color: rgba(248, 249, 250, 0.80);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .tab-btn.active {
-      color: var(--accent);
-      background: rgba(65, 182, 230, 0.08);
-      box-shadow: inset 0 3px 0 var(--danger);
-    }
-
-    .nav-badge {
-      font-family: var(--font-m);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-
-    /* ─── MAIN LAYOUT ─────────────────────────────── */
-
-    main {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 28px 28px 64px;
-    }
-
-    .tab-panel { display: none; }
-
-    .tab-panel.active {
-      display: block;
-      background: rgba(13, 17, 23, 0.55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      padding: 28px 28px 40px;
-    }
-
-    /* ─── SECTION HEADER ─────────────────────────── */
-
-    .section-header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 28px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .section-title {
-      font-family: var(--font-d);
-      font-size: 26px;
-      font-weight: 600;
-      color: var(--text);
-      line-height: 1.2;
-    }
-
-    #tab-home .section-title { font-size: 34px; }
-    #tab-home .section-sub   { font-size: 13px; }
-
-    .section-sub {
-      font-family: var(--font-m);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.045em;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    /* ─── CARD GRID ───────────────────────────────── */
-
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-
-    /* ─── NAVIGATION CARDS (glassmorphism) ─────────── */
-
-    .nav-card {
-      background: rgba(13, 17, 23, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 8px;
-      padding: 28px 22px 24px;
-      cursor: pointer;
-      transition:
-        border-color 0.22s ease,
-        box-shadow 0.22s ease,
-        transform 0.18s ease;
-      position: relative;
-      overflow: hidden;
-      text-align: left;
-    }
-
-    .nav-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent 10%, rgba(65,182,230,0.35) 50%, transparent 90%);
-      opacity: 0;
-      transition: opacity 0.22s ease;
-    }
-
-    .nav-card:hover {
-      border-color: rgba(65, 182, 230, 0.40);
-      box-shadow:
-        0 0 0 1px rgba(65, 182, 230, 0.08),
-        0 8px 32px rgba(0, 0, 0, 0.50),
-        0 0 28px rgba(65, 182, 230, 0.12);
-      transform: translateY(-2px);
-    }
-
-    .nav-card:hover::after { opacity: 1; }
-
-    .card-icon {
-      font-size: 24px;
-      line-height: 1;
-      margin-bottom: 16px;
-      display: block;
-    }
-
-    #tab-home .home-intro { font-size: 17px; line-height: 1.85; }
-    #tab-home .card-title { font-size: 22px; }
-    #tab-home .card-desc  { font-size: 14px; line-height: 1.7; }
-
-    .card-title {
-      font-family: var(--font-d);
-      font-size: 19px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .card-arrow {
-      font-family: var(--font-m);
-      font-size: 15px;
-      color: var(--accent);
-      opacity: 0;
-      transform: translateX(-6px);
-      transition: opacity 0.18s ease, transform 0.18s ease;
-    }
-
-    .nav-card:hover .card-arrow {
-      opacity: 1;
-      transform: translateX(0);
-    }
-
-    .card-desc {
-      font-size: 12px;
-      color: var(--text-dim);
-      letter-spacing: 0.02em;
-      line-height: 1.65;
-    }
-
-    /* ─── MAP TAB ──────────────────────────────────── */
-
-    .map-frame {
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.50);
-    }
-
-    #leaflet-map {
-      height: 480px;
-      width: 100%;
-      display: block;
-    }
-
-    .map-banner {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 400;
-      background: rgba(13, 17, 23, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(255, 255, 255, 0.10);
-      padding: 9px 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .banner-pulse {
-      display: none;
-    }
-
-    @keyframes banner-blink {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.35; transform: scale(0.65); }
-    }
-
-    .map-banner span {
-      font-family: var(--font-m);
-      font-style: italic;
-      font-size: 12px;
-      color: rgba(248, 249, 250, 0.70);
-      letter-spacing: 0.02em;
-    }
-
-    /* ─── TRENDS TAB ───────────────────────────────── */
-
-    .chart-block {
-      padding-bottom: 28px;
-      margin-bottom: 28px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .chart-block:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .chart-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .chart-label {
-      font-family: var(--font-d);
-      font-size: 19px;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .chart-meta {
-      font-family: var(--font-m);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.045em;
-      white-space: nowrap;
-    }
-
-    .chart-skeleton {
-      height: 240px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: linear-gradient(
-        90deg,
-        var(--surface)     25%,
-        var(--surface-alt) 50%,
-        var(--surface)     75%
-      );
-      background-size: 900px 100%;
-      animation: shimmer 1.9s infinite linear;
-    }
-
-    @keyframes shimmer {
-      0%   { background-position: -450px 0; }
-      100% { background-position: 450px 0; }
-    }
-
-    /* ─── INSIGHTS TAB ─────────────────────────────── */
-
-    .insight-card {
-      background: rgba(13, 17, 23, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 8px;
-      padding: 26px 22px 22px;
-      position: relative;
-      overflow: hidden;
-      min-height: 170px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .insight-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.15) 50%, transparent 90%);
-    }
-
-    .insight-tag {
-      font-family: var(--font-m);
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 14px;
-    }
-
-    .insight-title {
-      font-family: var(--font-d);
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text);
-      line-height: 1.35;
-      flex: 1;
-    }
-
-    .insight-footer {
-      margin-top: 20px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-family: var(--font-m);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.03em;
-    }
-
-    .insight-dot {
-      background: transparent;
-      width: auto;
-      height: auto;
-      border-radius: 0;
-      flex-shrink: 0;
-      font-size: 11px;
-      color: var(--danger);
-      line-height: 1;
-    }
-
-    .insight-dot::before {
-      content: '✶';
-    }
-
-    /* ─── HOME INTRO & DATA NOTE ─────────────────────── */
-
-    .home-intro {
-      font-family: var(--font-d);
-      font-style: italic;
-      font-size: 15px;
-      color: var(--text-dim);
-      line-height: 1.75;
-      max-width: 780px;
-      margin-bottom: 28px;
-    }
-
-    .data-note {
-      margin-top: 28px;
-      border-top: 1px solid var(--border);
-      padding-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .data-note-row {
-      display: grid;
-      grid-template-columns: 80px 1fr;
-      gap: 16px;
-      align-items: baseline;
-    }
-
-    .data-note-label {
-      font-family: var(--font-m);
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      padding-top: 1px;
-    }
-
-    .data-note-val {
-      font-family: var(--font-m);
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.65;
-    }
-
-    .data-note-val em {
-      font-style: italic;
-      color: var(--text-dim);
-    }
-
-    /* ─── RESPONSIVE ───────────────────────────────── */
-
-    @media (max-width: 900px) {
-      .card-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @media (max-width: 768px) {
-      .nav-inner { padding: 0 12px; flex-wrap: wrap; height: auto; }
-      .nav-badge { display: none; }
-      .logo { font-size: 15px; }
-      .tabs { position: static; transform: none; width: 100%; justify-content: center; border-top: 1px solid rgba(255,255,255,0.07); }
-      .tab-btn { height: 40px; padding: 0 14px; font-size: 10px; }
-      main { padding: 24px 16px 48px; }
-      .section-header { flex-direction: column; align-items: flex-start; gap: 4px; }
-      .section-sub { white-space: normal; }
-      .card-grid { grid-template-columns: 1fr; }
-      .section-title { font-size: 22px; }
-    }
-
-    @media (max-width: 480px) {
-      .tab-btn { padding: 4px 11px; font-size: 12px; }
-      #leaflet-map { height: 320px; }
-      .chart-skeleton { height: 180px; }
-      .chart-head { flex-direction: column; gap: 2px; }
-      .insight-card { min-height: 140px; }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Crimiviz — Twenty-five years of Chicago, indexed</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/viz.css">
 </head>
-<body>
+<body data-tab="home">
 
-  <nav>
-    <div class="nav-inner">
-      <div class="logo">CrimiViz</div>
-      <div class="nav-sep"></div>
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="home">Home</button>
-        <button class="tab-btn" data-tab="map">Map</button>
-        <button class="tab-btn" data-tab="trends">Trends</button>
-        <button class="tab-btn" data-tab="insights">Insights</button>
+<!-- ═══════════════════════════════════════════════════════════
+     SVG defs — blood filters & gradients
+     ═══════════════════════════════════════════════════════════ -->
+<svg class="blood-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="bloodRough" x="-15%" y="-5%" width="130%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.2 0.06" numOctaves="3" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="4.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="bloodGoo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="
+        1 0 0 0 0
+        0 1 0 0 0
+        0 0 1 0 0
+        0 0 0 26 -11" result="goo"/>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+    <filter id="bloodSplat" x="-8%" y="-8%" width="116%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="9"/>
+    </filter>
+    <filter id="bloodWet" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.4" result="smooth"/>
+      <feSpecularLighting in="smooth" surfaceScale="3" specularConstant="1.1" specularExponent="22" lighting-color="#ffd9d9" result="spec">
+        <fePointLight x="-40" y="-80" z="120"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceGraphic" operator="in" result="speclit"/>
+      <feComposite in="speclit" in2="SourceGraphic" operator="arithmetic" k1="0" k2="1" k3="0.55" k4="0"/>
+    </filter>
+    <linearGradient id="bloodGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9b1b1b"/>
+      <stop offset="0.4" stop-color="#7a1010"/>
+      <stop offset="1" stop-color="#3d0303"/>
+    </linearGradient>
+    <radialGradient id="dropGrad" cx="34%" cy="26%" r="68%">
+      <stop offset="0" stop-color="#ffb3b3"/>
+      <stop offset="0.08" stop-color="#d23a3a"/>
+      <stop offset="0.32" stop-color="#9b1b1b"/>
+      <stop offset="0.7" stop-color="#5a0a0a"/>
+      <stop offset="1" stop-color="#2a0202"/>
+    </radialGradient>
+    <radialGradient id="tipGrad" cx="36%" cy="24%" r="75%">
+      <stop offset="0" stop-color="#ffcccc"/>
+      <stop offset="0.12" stop-color="#c63232"/>
+      <stop offset="0.45" stop-color="#7a1010"/>
+      <stop offset="1" stop-color="#1f0101"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Bleed system — fixed drips that grow with scroll
+     ═══════════════════════════════════════════════════════════ -->
+<div class="bleed-system" aria-hidden="true">
+  <div class="drip drip-left"  data-drip="L" style="left:0; top:120px; width:14px; --base:90px; --extra:1000px;  --neck-h:278px; --neck-angle:19deg;">
+    <div class="drip-neck"></div>
+    <div class="drip-streak"></div>
+    <div class="drip-tip"></div>
+  </div>
+  <div class="drip drip-right" data-drip="R" style="right:0; top:120px; width:22px; --base:100px; --extra:1100px; --neck-h:278px; --neck-angle:19deg;">
+    <div class="drip-neck"></div>
+    <div class="drip-streak"></div>
+    <div class="drip-tip" style="width:28px; height:34px;"></div>
+  </div>
+  <!-- Slow trickle between center and right edge — only on Home -->
+  <div class="drip drip-slow" data-drip="S" style="left:68%; top:-10px; width:7px; --base:18px; --extra:180px;">
+    <div class="drip-streak"></div>
+    <div class="drip-tip" style="width:15px; height:22px;"></div>
+  </div>
+  <!-- Tiny center trickle — Home only, even smaller than the right one -->
+  <div class="drip drip-mini" data-drip="M" style="left:49.5%; top:-6px; width:5px; --base:12px; --extra:110px;">
+    <div class="drip-streak"></div>
+    <div class="drip-tip" style="width:11px; height:16px;"></div>
+  </div>
+  <!-- standalone drops/spats on edges -->
+  <div class="drip-spat" style="top:14%; left:2%;   width:8px; height:6px;"></div>
+  <div class="drip-spat" style="top:28%; left:1%;   width:5px; height:4px;"></div>
+  <div class="drip-spat" style="top:62%; right:1.5%;width:10px; height:8px;"></div>
+  <div class="drip-spat" style="top:80%; right:2.5%;width:6px;  height:5px;"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     Masthead — The Chicago Crimiviz
+     ═══════════════════════════════════════════════════════════ -->
+<header class="masthead" role="banner">
+  <div class="masthead-rule-top">
+    <div class="left">
+      <span>Vol. XXV · No. 8,547,082</span>
+      <span class="pipe" aria-hidden="true"></span>
+      <span>Late Edition · Saturday, May 9, 2026</span>
+    </div>
+    <div class="right">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>Wire feed · ijzp-q8t2 · updated daily</span>
+      <span class="pipe" aria-hidden="true"></span>
+      <span>50¢</span>
+    </div>
+  </div>
+  <div class="masthead-main">
+    <div class="chi-flag" aria-label="Flag of Chicago">
+      <div class="chi-flag-row" aria-hidden="true"></div>
+      <div class="chi-flag-row blue" aria-hidden="true"></div>
+      <div class="chi-flag-row stars" aria-hidden="true">
+        <span class="chi-star"></span>
+        <span class="chi-star"></span>
+        <span class="chi-star"></span>
+        <span class="chi-star"></span>
+      </div>
+      <div class="chi-flag-row blue" aria-hidden="true"></div>
+      <div class="chi-flag-row" aria-hidden="true"></div>
+    </div>
+    <div>
+      <h1 class="masthead-title">The Chicago <em>Crimiviz</em></h1>
+      <div class="masthead-sub">
+        <span class="ornament" aria-hidden="true"></span>
+        <span>An editorial atlas of crime · 41.88°N · 87.63°W</span>
+        <span class="ornament" aria-hidden="true"></span>
       </div>
     </div>
-  </nav>
-
-  <main>
-
-    <!-- ══ HOME ══════════════════════════════════════ -->
-    <div id="tab-home" class="tab-panel active">
-      <div class="section-header">
-        <h1 class="section-title">Chicago Crime Explorer</h1>
-        <span class="section-sub">Select a module to begin</span>
+    <div class="chi-flag right" aria-hidden="true">
+      <div class="chi-flag-row"></div>
+      <div class="chi-flag-row blue"></div>
+      <div class="chi-flag-row stars">
+        <span class="chi-star"></span>
+        <span class="chi-star"></span>
+        <span class="chi-star"></span>
+        <span class="chi-star"></span>
       </div>
-      <p class="home-intro">This dashboard explores over two decades of crime incidents reported in Chicago, from 2001 to 2024. It is structured around three points of views : geography, time, and context. It tries to find patterns in how, when, and where crime concentrates across the city.</p>
+      <div class="chi-flag-row blue"></div>
+      <div class="chi-flag-row"></div>
+    </div>
+  </div>
+</header>
 
-      <div class="card-grid">
+<!-- ═══════════════════════════════════════════════════════════
+     Sticky tab strip
+     ═══════════════════════════════════════════════════════════ -->
+<div class="tab-strip">
+  <div class="tab-strip-inner">
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" aria-selected="true"  aria-controls="panel-home"     data-tab="home">Home</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-map"      data-tab="map">Map</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-trends"   data-tab="trends">Trends</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-insights" data-tab="insights">Insights</button>
+    </nav>
+    <div class="ed">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>Crimiviz · Chicago, IL</span>
+    </div>
+  </div>
+</div>
 
-        <div class="nav-card" onclick="switchTab('map')">
-          <div class="card-title">Map <span class="card-arrow">→</span></div>
-          <p class="card-desc">Geographic distribution of incidents across Chicago neighborhoods, wards, and police districts.</p>
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HOME
+     ═══════════════════════════════════════════════════════════ -->
+<section id="panel-home" class="panel is-active" role="tabpanel" aria-labelledby="tab-home">
+
+  <div class="hero stagger">
+    <div class="hero-eyebrow eyebrow">
+      <span class="dot" aria-hidden="true"></span>
+      <span>Filed in Chicago · 41.88°N · 87.63°W</span>
+    </div>
+    <h1 class="hero-headline">
+      Twenty-five years<br />
+      of one city, <em>bleeding</em><br />
+      <span class="accent">into the record.</span>
+    </h1>
+    <p class="hero-deck">
+      Eight and a half million incidents reported between 2001 and today across Chicago's seventy-seven community areas — Loop, Englewood, Lincoln Park, Austin, Auburn Gresham. <em>Crimiviz</em> turns that ledger into something you can read, scroll, and cross-examine.
+    </p>
+
+    <!-- Hero blood splatter, gooey -->
+    <div class="hero-splat hero-splat-1" aria-hidden="true">
+      <svg viewBox="0 0 220 160">
+        <g filter="url(#bloodSplat)" fill="url(#dropGrad)">
+          <!-- chaotic main blot — irregular cubic path, not a circle -->
+          <path d="M120 38 C 92 30 64 44 58 70 C 50 76 36 70 28 84 C 22 98 36 112 56 110 C 60 124 78 138 100 134 C 116 148 144 150 158 134 C 178 142 198 128 196 112 C 210 102 208 80 192 74 C 198 56 184 38 162 42 C 152 28 134 26 120 38 Z"/>
+          <!-- thrown drops, irregular -->
+          <path d="M14 28 C 10 32 8 40 16 44 C 22 44 26 38 22 32 C 20 28 16 26 14 28 Z"/>
+          <path d="M204 12 C 198 16 196 24 204 28 C 212 28 216 22 212 16 C 210 12 206 10 204 12 Z"/>
+          <path d="M188 144 C 184 148 184 156 192 156 C 200 156 202 148 198 144 C 196 142 190 142 188 144 Z"/>
+          <path d="M44 142 C 38 144 36 152 44 156 C 52 156 56 150 52 144 C 50 140 46 140 44 142 Z"/>
+          <ellipse cx="30" cy="100" rx="4" ry="2" transform="rotate(35 30 100)"/>
+          <ellipse cx="180" cy="30" rx="7" ry="3" transform="rotate(-22 180 30)"/>
+          <ellipse cx="96" cy="14"  rx="4" ry="2" transform="rotate(15 96 14)"/>
+          <ellipse cx="120" cy="152" rx="5" ry="2" transform="rotate(-12 120 152)"/>
+          <circle cx="6" cy="72" r="1.6"/>
+          <circle cx="214" cy="86" r="2"/>
+          <circle cx="60" cy="6" r="1.4"/>
+        </g>
+      </svg>
+    </div>
+    <div class="hero-splat hero-splat-2" aria-hidden="true">
+      <svg viewBox="0 0 140 110">
+        <g filter="url(#bloodSplat)" fill="url(#dropGrad)">
+          <path d="M68 28 C 50 22 32 30 28 46 C 18 50 12 64 22 76 C 28 90 48 96 64 86 C 78 96 100 92 102 74 C 116 70 122 56 110 46 C 110 32 88 22 68 28 Z"/>
+          <path d="M6 26 C 2 30 2 38 8 40 C 14 40 18 34 14 28 C 12 24 8 24 6 26 Z"/>
+          <path d="M126 96 C 122 100 122 106 130 106 C 136 106 138 100 134 96 C 132 94 128 94 126 96 Z"/>
+          <ellipse cx="126" cy="14" rx="5" ry="2" transform="rotate(-22 126 14)"/>
+          <ellipse cx="18" cy="86" rx="4" ry="2" transform="rotate(28 18 86)"/>
+          <circle cx="4" cy="58" r="1.4"/>
+          <circle cx="134" cy="50" r="1.8"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <dl class="kpi-strip stagger" aria-label="Key figures">
+    <div class="kpi">
+      <span class="kpi-num">8,547,082</span>
+      <span class="kpi-label">Incidents on record</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-num">2001<span class="unit">→</span>2026</span>
+      <span class="kpi-label">25+ years covered</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-num">77</span>
+      <span class="kpi-label">Community areas</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-num">25.1<span class="unit">%</span></span>
+      <span class="kpi-label">Mean arrest rate</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-num">~17,000</span>
+      <span class="kpi-label">Filed last month</span>
+    </div>
+    </div>
+  </dl>
+
+  <div class="nav-section">
+    <header class="section-head">
+      <h2>Three ways<br /><em>into the data.</em></h2>
+      <p class="meta">Choose your reading. The map shows where; the trends show when; the insights ask why. Every view sits on the same dataset and respects the same filters.</p>
+    </header>
+
+    <div class="nav-grid stagger">
+      <button class="nav-card" data-tab="map" aria-label="Open Map">
+        <div class="ribbon">
+          <span class="sect"><span class="num">A</span> Section A · Map</span>
+          <span class="pages">pp. 1–12</span>
         </div>
+        <div class="photo" aria-hidden="true">
+          <svg viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
+            <!-- camera-zoomable layer -->
+            <g class="zoomGrp">
+              <!-- engraved street grid in newsprint ink -->
+              <g class="drift" stroke="#2a1f12" stroke-width="0.5" opacity="0.55" fill="none">
+                <path d="M0 40 H320 M0 70 H320 M0 100 H320 M0 130 H320 M0 160 H320 M0 190 H320 M0 220 H320"/>
+                <path d="M30 0 V240 M70 0 V240 M110 0 V240 M150 0 V240 M190 0 V240 M230 0 V240 M270 0 V240"/>
+              </g>
+              <!-- shoreline (Lake Michigan) hatched -->
+              <path d="M252 0 C 240 60, 264 110, 250 160 C 244 200, 262 230, 274 240 L 320 240 L 320 0 Z"
+                    fill="#2a1f12" opacity="0.18"/>
+              <path d="M252 0 C 240 60, 264 110, 250 160 C 244 200, 262 230, 274 240"
+                    stroke="#2a1f12" stroke-width="0.7" fill="none" opacity="0.7"/>
+              <g stroke="#2a1f12" stroke-width="0.4" opacity="0.35">
+                <path d="M260 12 L300 0 M260 30 L308 8 M256 50 L312 22 M254 75 L316 48 M252 100 L318 76 M252 125 L318 104 M254 150 L316 132 M258 175 L320 162 M268 210 L320 200"/>
+              </g>
 
-        <div class="nav-card" onclick="switchTab('trends')">
-          <div class="card-title">Trends <span class="card-arrow">→</span></div>
-          <p class="card-desc">Temporal patterns, seasonality analysis, time-of-day rhythms, and crime type breakdowns.</p>
+              <!-- HAND-DRAWN AERIAL CITY MAP — visible at rest, fades on hover -->
+              <g class="cityMap">
+                <!-- park (Grant-Park-ish strip along the lake) -->
+                <rect x="212" y="86" width="22" height="86" fill="#2a1f12" fill-opacity="0.16" stroke="#2a1f12" stroke-width="0.4"/>
+                <g stroke="#2a1f12" stroke-width="0.35" opacity="0.55">
+                  <path d="M214 92 L232 92 M214 100 L232 100 M214 108 L232 108 M214 116 L232 116 M214 124 L232 124 M214 132 L232 132 M214 140 L232 140 M214 148 L232 148 M214 156 L232 156 M214 164 L232 164"/>
+                </g>
+                <!-- river meandering through downtown -->
+                <path d="M0 138 C 30 132, 60 146, 92 138 C 118 132, 138 142, 162 134 C 188 126, 204 132, 220 124"
+                      stroke="#2a1f12" stroke-width="1.4" opacity="0.55" fill="none"/>
+                <path d="M0 141 C 30 135, 60 149, 92 141 C 118 135, 138 145, 162 137 C 188 129, 204 135, 220 127"
+                      stroke="#2a1f12" stroke-width="0.4" opacity="0.4" fill="none"/>
+
+                <!-- secondary street grid (thin) -->
+                <g stroke="#2a1f12" stroke-width="0.35" opacity="0.5" fill="none">
+                  <path d="M0 50 H236 M0 62 H236 M0 74 H236 M0 86 H236 M0 98 H236 M0 110 H236 M0 122 H236 M0 154 H236 M0 166 H236 M0 178 H236 M0 190 H236 M0 202 H236 M0 214 H236"/>
+                  <path d="M16 32 V230 M28 32 V230 M40 32 V230 M52 32 V230 M64 32 V230 M76 32 V230 M88 32 V230 M100 32 V230 M112 32 V230 M124 32 V230 M136 32 V230 M148 32 V230 M160 32 V230 M172 32 V230 M184 32 V230 M196 32 V230 M208 32 V230"/>
+                </g>
+                <!-- main avenues (thicker) -->
+                <g stroke="#2a1f12" stroke-width="1.1" opacity="0.85" fill="none" stroke-linecap="square">
+                  <line x1="0" y1="118" x2="230" y2="118"/>
+                  <line x1="118" y1="30" x2="118" y2="230"/>
+                  <line x1="60" y1="30" x2="60" y2="230"/>
+                  <line x1="170" y1="30" x2="170" y2="230"/>
+                  <line x1="0" y1="82" x2="230" y2="82"/>
+                  <line x1="0" y1="180" x2="230" y2="180"/>
+                </g>
+                <!-- diagonal artery (Milwaukee-Lincoln vibe) -->
+                <line x1="-10" y1="230" x2="160" y2="40" stroke="#2a1f12" stroke-width="1.0" opacity="0.8"/>
+                <line x1="-9" y1="233" x2="161" y2="43" stroke="#2a1f12" stroke-width="0.3" opacity="0.4"/>
+
+                <!-- railroad track with ties -->
+                <line x1="0" y1="206" x2="230" y2="196" stroke="#2a1f12" stroke-width="0.5" opacity="0.7"/>
+                <line x1="0" y1="209" x2="230" y2="199" stroke="#2a1f12" stroke-width="0.5" opacity="0.7"/>
+                <g stroke="#2a1f12" stroke-width="0.4" opacity="0.6">
+                  <path d="M10 206 l0 4 M30 206 l0 4 M50 205 l0 4 M70 205 l0 4 M90 204 l0 4 M110 203 l0 4 M130 203 l0 4 M150 202 l0 4 M170 201 l0 4 M190 200 l0 4 M210 199 l0 4"/>
+                </g>
+
+                <!-- building footprints, hand-inked block fills -->
+                <g fill="#2a1f12" stroke="#2a1f12" stroke-width="0.3" stroke-linejoin="round">
+                  <rect x="68"  y="86"  width="18" height="10" fill-opacity="0.6"/>
+                  <rect x="92"  y="86"  width="22" height="14" fill-opacity="0.7"/>
+                  <rect x="124" y="86"  width="16" height="12" fill-opacity="0.55"/>
+                  <rect x="148" y="86"  width="18" height="10" fill-opacity="0.65"/>
+                  <rect x="176" y="86"  width="14" height="14" fill-opacity="0.5"/>
+                  <rect x="68"  y="104" width="22" height="10" fill-opacity="0.55"/>
+                  <rect x="96"  y="104" width="16" height="12" fill-opacity="0.7"/>
+                  <rect x="124" y="104" width="20" height="10" fill-opacity="0.55"/>
+                  <rect x="152" y="104" width="14" height="12" fill-opacity="0.6"/>
+                  <rect x="176" y="104" width="16" height="10" fill-opacity="0.5"/>
+                  <rect x="68"  y="154" width="20" height="22" fill-opacity="0.55"/>
+                  <rect x="96"  y="154" width="14" height="22" fill-opacity="0.5"/>
+                  <rect x="124" y="154" width="22" height="22" fill-opacity="0.65"/>
+                  <rect x="154" y="154" width="14" height="22" fill-opacity="0.55"/>
+                  <rect x="176" y="154" width="18" height="22" fill-opacity="0.5"/>
+                  <rect x="40"  y="86"  width="16" height="10" fill-opacity="0.5"/>
+                  <rect x="40"  y="104" width="16" height="10" fill-opacity="0.55"/>
+                  <rect x="40"  y="154" width="16" height="22" fill-opacity="0.5"/>
+                </g>
+                <!-- a few crosshatched landmark blocks -->
+                <g stroke="#2a1f12" stroke-width="0.4" opacity="0.7" fill="none">
+                  <rect x="92" y="86" width="22" height="14"/>
+                  <path d="M92 86 L114 100 M92 100 L114 86"/>
+                  <rect x="124" y="154" width="22" height="22"/>
+                  <path d="M124 154 L146 176 M124 176 L146 154"/>
+                </g>
+                <!-- subtle hand-lettered labels -->
+                <g class="cityLabel">
+                  <text x="30"  y="46"  font-style="italic">NORTH SIDE</text>
+                  <text x="32"  y="222" font-style="italic">SOUTH SIDE</text>
+                  <text x="96"  y="148" font-style="italic">River</text>
+                  <text x="222" y="126" font-style="italic" text-anchor="end" fill="#f5eedf">PARK</text>
+                  <text x="275" y="180" font-style="italic" text-anchor="middle" fill="#f5eedf">LAKE</text>
+                </g>
+              </g>
+
+              <!-- generic incident dots (revealed by zoom + district collapse) -->
+              <g class="dotLayer" fill="#2a1f12" opacity="0.5">
+                <circle cx="60" cy="110" r="1.4"/><circle cx="72" cy="118" r="1.2"/><circle cx="100" cy="108" r="1.2"/>
+                <circle cx="112" cy="126" r="1.6"/><circle cx="122" cy="100" r="1.2"/><circle cx="152" cy="104" r="1.4"/>
+                <circle cx="176" cy="100" r="1.2"/><circle cx="188" cy="122" r="1.4"/><circle cx="200" cy="110" r="1.6"/>
+                <circle cx="68" cy="148" r="1.2"/><circle cx="82" cy="160" r="1.4"/><circle cx="96" cy="152" r="1.6"/>
+                <circle cx="132" cy="156" r="1.4"/><circle cx="148" cy="172" r="1.2"/><circle cx="166" cy="160" r="1.4"/>
+                <circle cx="180" cy="176" r="1.2"/><circle cx="196" cy="168" r="1.4"/>
+                <circle cx="54" cy="82" r="1.0"/><circle cx="42" cy="96" r="1.2"/><circle cx="218" cy="104" r="1.4"/>
+                <circle cx="108" cy="196" r="1.2"/><circle cx="168" cy="200" r="1.2"/>
+                <circle cx="86" cy="58" r="1.0"/><circle cx="110" cy="50" r="1.0"/>
+              </g>
+
+              <!-- hot incident pings -->
+              <g fill="none" stroke="#7a1010" stroke-width="0.8">
+                <circle class="ping"    cx="140" cy="118" r="1"/>
+                <circle class="ping p2" cx="118" cy="168" r="1"/>
+                <circle class="ping p3" cx="196" cy="100" r="1"/>
+              </g>
+              <circle class="hot"    cx="140" cy="118" r="2" fill="#7a1010"/>
+              <circle class="hot h2" cx="118" cy="168" r="2" fill="#7a1010"/>
+              <circle class="hot h3" cx="196" cy="100" r="2" fill="#7a1010"/>
+            </g>
+
+            <!-- compass rose, fixed (does not zoom) -->
+            <g transform="translate(36 36)" stroke="#2a1f12" fill="none" stroke-width="0.6" opacity="0.7">
+              <circle r="12"/>
+              <path d="M0 -12 L2.5 0 L0 12 L-2.5 0 Z" fill="#2a1f12"/>
+              <text x="0" y="-15" text-anchor="middle" font-family="ui-monospace, monospace" font-size="5.5" fill="#2a1f12" stroke="none">N</text>
+            </g>
+          </svg>
+          <span class="caption">Reported · last 24 h</span>
         </div>
-
-        <div class="nav-card" onclick="switchTab('insights')">
-          <div class="card-title">Insights <span class="card-arrow">→</span></div>
-          <p class="card-desc">Analytical deep-dives: COVID disruption, election cycles, and major city events correlated with crime.</p>
+        <div class="body">
+          <div class="byline"><span>By the Map Desk</span><span class="sep"></span><span>Chicago, IL</span></div>
+          <h3>Where it <em>happens.</em></h3>
+          <p>An interactive choropleth across seventy-seven community areas, filtered by category and hour.</p>
+          <span class="arrow"><span class="line"></span> Open the map</span>
         </div>
+      </button>
 
+      <button class="nav-card" data-tab="trends" aria-label="Open Trends">
+        <div class="ribbon">
+          <span class="sect"><span class="num">B</span> Section B · Trends</span>
+          <span class="pages">pp. 1–9</span>
+        </div>
+        <div class="photo" aria-hidden="true">
+          <svg viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
+            <!-- horizontal gridlines, ink on cream -->
+            <g stroke="#2a1f12" stroke-width="0.35" opacity="0.35">
+              <path d="M0 50 H320 M0 100 H320 M0 150 H320 M0 200 H320"/>
+            </g>
+            <!-- area under curve, hatched fill -->
+            <defs>
+              <pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="5" stroke="#7a1010" stroke-width="1.2" opacity="0.55"/>
+              </pattern>
+            </defs>
+            <path d="M0 200 C 30 180, 50 165, 80 175 C 110 188, 140 150, 170 140 C 200 130, 230 110, 260 95 C 290 82, 310 70, 320 60 L 320 240 L 0 240 Z"
+                  fill="url(#hatch)" opacity="0.75"/>
+            <!-- main line, drawn in on hover -->
+            <path class="anim draw" d="M0 200 C 30 180, 50 165, 80 175 C 110 188, 140 150, 170 140 C 200 130, 230 110, 260 95 C 290 82, 310 70, 320 60"
+                  stroke="#7a1010" stroke-width="1.8" fill="none"/>
+            <!-- secondary dashed line, scrolls -->
+            <path class="anim dash" stroke-dasharray="3 3" d="M0 180 L 40 168 L 80 172 L 120 158 L 160 152 L 200 144 L 240 130 L 280 124 L 320 118"
+                  stroke="#2a1f12" stroke-width="0.8" fill="none" opacity="0.65"/>
+            <!-- data dots, pop in -->
+            <g fill="#2a1f12">
+              <circle class="anim pop d1" cx="40"  cy="190" r="1.6"/>
+              <circle class="anim pop d2" cx="80"  cy="175" r="1.6"/>
+              <circle class="anim pop d3" cx="120" cy="170" r="1.6"/>
+              <circle class="anim pop d4" cx="160" cy="148" r="1.6"/>
+              <circle class="anim pop d5" cx="200" cy="122" r="1.6"/>
+              <circle class="anim pop d6" cx="240" cy="104" r="1.6"/>
+              <circle class="anim pop d7" cx="280" cy="86"  r="1.6"/>
+            </g>
+            <!-- vertical scan sweep -->
+            <line class="anim scan" x1="0" y1="40" x2="0" y2="230" stroke="#7a1010" stroke-width="0.6" opacity="0.6"/>
+            <!-- axis labels -->
+            <g font-family="ui-monospace, monospace" font-size="6" fill="#2a1f12" opacity="0.7">
+              <text x="6" y="54">300k</text>
+              <text x="6" y="104">200k</text>
+              <text x="6" y="154">100k</text>
+            </g>
+            <g font-family="ui-monospace, monospace" font-size="6" fill="#2a1f12" opacity="0.7">
+              <text x="40" y="232">2001</text>
+              <text x="152" y="232">2014</text>
+              <text x="282" y="232">2026</text>
+            </g>
+          </svg>
+          <span class="caption">Quarter-century, indexed</span>
+        </div>
+        <div class="body">
+          <div class="byline"><span>By the Data Desk</span><span class="sep"></span><span>2001–2026</span></div>
+          <h3>How it <em>moves.</em></h3>
+          <p>Quarter-century curves, daily rhythms, type distributions, arrest yields — four readings of the same numbers.</p>
+          <span class="arrow"><span class="line"></span> See the trends</span>
+        </div>
+      </button>
+
+      <button class="nav-card" data-tab="insights" aria-label="Open Insights">
+        <div class="ribbon">
+          <span class="sect"><span class="num">C</span> Section C · Insights</span>
+          <span class="pages">pp. 1–16</span>
+        </div>
+        <div class="photo" aria-hidden="true">
+          <svg viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice">
+            <!-- column rule -->
+            <line x1="160" y1="24" x2="160" y2="216" stroke="#2a1f12" stroke-width="0.4" opacity="0.5"/>
+            <!-- left column: photo block + caption rows -->
+            <rect x="24" y="30" width="118" height="66" fill="#2a1f12" opacity="0.85"/>
+            <!-- drop cap inside left column -->
+            <text class="anim cap" x="34" y="82" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-size="56" fill="#7a1010">A</text>
+            <!-- left column body lines -->
+            <g fill="#2a1f12">
+              <rect class="anim row r1"  x="24"  y="108" width="118" height="3"/>
+              <rect class="anim row r2"  x="24"  y="116" width="110" height="3"/>
+              <rect class="anim row r3"  x="24"  y="124" width="118" height="3"/>
+              <rect class="anim row r4"  x="24"  y="132" width="94"  height="3"/>
+              <rect class="anim row r5"  x="24"  y="140" width="118" height="3"/>
+              <rect class="anim row r6"  x="24"  y="148" width="82"  height="3"/>
+              <rect class="anim row r7"  x="24"  y="160" width="118" height="3"/>
+              <rect class="anim row r8"  x="24"  y="168" width="96"  height="3"/>
+              <rect class="anim row r9"  x="24"  y="176" width="118" height="3"/>
+              <rect class="anim row r10" x="24"  y="184" width="70"  height="3"/>
+            </g>
+            <!-- right column: headline + body -->
+            <rect class="anim row r1" x="178" y="30"  width="118" height="7"  fill="#2a1f12"/>
+            <rect class="anim row r2" x="178" y="42"  width="96"  height="7"  fill="#2a1f12"/>
+            <g fill="#2a1f12">
+              <rect class="anim row r3"  x="178" y="60"  width="118" height="3"/>
+              <rect class="anim row r4"  x="178" y="68"  width="110" height="3"/>
+              <rect class="anim row r5"  x="178" y="76"  width="118" height="3"/>
+              <rect class="anim row r6"  x="178" y="84"  width="96"  height="3"/>
+              <rect class="anim row r7"  x="178" y="92"  width="118" height="3"/>
+              <rect class="anim row r8"  x="178" y="100" width="82"  height="3"/>
+              <rect class="anim row r9"  x="178" y="112" width="118" height="3"/>
+              <rect class="anim row r10" x="178" y="120" width="118" height="3"/>
+              <rect class="anim row r11" x="178" y="128" width="100" height="3"/>
+              <rect class="anim row r12" x="178" y="136" width="118" height="3"/>
+              <rect class="anim row r13" x="178" y="144" width="68"  height="3"/>
+            </g>
+            <!-- mini chart on right column -->
+            <g stroke="#2a1f12" stroke-width="0.5" fill="none">
+              <rect x="178" y="160" width="118" height="50" opacity="0.5"/>
+              <path d="M182 200 L200 188 L220 192 L240 178 L262 170 L290 164" stroke="#7a1010" stroke-width="1.2"/>
+            </g>
+          </svg>
+          <span class="caption">Three essays · long-form</span>
+        </div>
+        <div class="body">
+          <div class="byline"><span>By the Editorial Desk</span><span class="sep"></span><span>3 features</span></div>
+          <h3>What it <em>means.</em></h3>
+          <p>Three long-form essays on the pandemic, election cycles, and the city when the world is watching.</p>
+          <span class="arrow"><span class="line"></span> Read the stories</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <section class="about">
+    <h2 class="about-title">About <em>the data.</em></h2>
+    <dl class="about-body">
+      <div class="about-row">
+        <dt>Source</dt>
+        <dd>Chicago <em>Data Portal</em></dd>
+      </div>
+      <div class="about-row">
+        <dt>Dataset ID</dt>
+        <dd class="mono" style="font-family:var(--mono); font-size:18px; letter-spacing:0.04em;">ijzp-q8t2</dd>
+      </div>
+      <div class="about-row">
+        <dt>Volume</dt>
+        <dd>8.5M <em>rows</em></dd>
+      </div>
+      <div class="about-row">
+        <dt>Coverage</dt>
+        <dd>Jan 2001 → <em>today</em></dd>
+      </div>
+      <div class="about-row">
+        <dt>Refresh cadence</dt>
+        <dd><em>Daily</em>, automated</dd>
+      </div>
+      <div class="about-row">
+        <dt>Granularity</dt>
+        <dd>Block-level, <em>anonymised</em></dd>
+      </div>
+    </dl>
+  </section>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAP
+     ═══════════════════════════════════════════════════════════ -->
+<section id="panel-map" class="panel" role="tabpanel" aria-labelledby="tab-map" hidden>
+
+  <header class="tab-head">
+    <h1>Where the <em>incidents</em> fall.</h1>
+    <p class="deck">Each polygon is one of Chicago's seventy-seven community areas, shaded by reported volume. Pick a category, scrub the hour of day, and watch the city redraw itself.</p>
+  </header>
+
+  <div class="map-layout">
+    <aside class="controls" aria-label="Map filters">
+      <div class="control">
+        <label class="control-label" for="filter-type">
+          <span>Category</span>
+          <span class="val">34 types</span>
+        </label>
+        <div class="select-wrap">
+          <select id="filter-type" aria-label="Filter by crime category">
+            <option value="ALL">All categories</option>
+            <option value="THEFT">Theft · 1,815,628</option>
+            <option value="BATTERY">Battery · 1,556,783</option>
+            <option value="CRIMINAL DAMAGE">Criminal damage · 971,405</option>
+            <option value="NARCOTICS">Narcotics · 767,335</option>
+            <option value="ASSAULT">Assault · 575,115</option>
+            <option value="OTHER OFFENSE">Other offense · 533,999</option>
+            <option value="BURGLARY">Burglary · 451,826</option>
+            <option value="MOTOR VEHICLE THEFT">Motor vehicle theft · 440,343</option>
+            <option value="DECEPTIVE PRACTICE">Deceptive practice · 396,550</option>
+            <option value="ROBBERY">Robbery · 317,003</option>
+            <option value="ARSON">Arson</option>
+            <option value="KIDNAPPING">Kidnapping</option>
+            <option value="HOMICIDE">Homicide</option>
+            <option value="GAMBLING">Gambling</option>
+            <option value="INTIMIDATION">Intimidation</option>
+          </select>
+        </div>
       </div>
 
-      <div class="data-note">
-        <div class="data-note-row">
-          <span class="data-note-label">Source</span>
-          <span class="data-note-val">Chicago Data Portal <em>Crimes : 2001 to Present</em></span>
+      <div class="control">
+        <label class="control-label" for="filter-hour">
+          <span>Hour of day</span>
+          <span class="val"><span id="hour-display">All</span></span>
+        </label>
+        <div class="slider-wrap">
+          <input id="filter-hour" type="range" min="0" max="23" value="12" aria-label="Filter by hour of day" />
+          <div class="tick-row">
+            <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
+          </div>
         </div>
-        <div class="data-note-row">
-          <span class="data-note-label">Volume</span>
-          <span class="data-note-val">~7.8 million reported incidents : updated daily</span>
+      </div>
+
+      <button id="filter-reset" class="btn-ghost" aria-label="Reset filters">
+        <span>Reset filters</span>
+        <span class="x" aria-hidden="true"></span>
+      </button>
+
+      <div class="control">
+        <span class="control-label"><span>Density · per km²</span></span>
+        <div id="map-legend" class="legend" aria-label="Map color scale legend">
+          <div class="legend-bar" aria-hidden="true"></div>
+          <div class="legend-scale">
+            <span>low</span>
+            <span>median</span>
+            <span>high</span>
+          </div>
         </div>
-        <div class="data-note-row">
-          <span class="data-note-label">Scope</span>
-          <span class="data-note-val">All reported crimes extracted from the Chicago Police Department's CLEAR system. Excludes murders where data exists only in an additional dataset.</span>
+      </div>
+
+      <div style="border-top:1px dashed var(--rule); padding-top:18px; font-family:var(--mono); font-size:10px; line-height:1.6; color:var(--ink-3); letter-spacing:0.04em;">
+        Hover a community area to inspect its volume, top category, and arrest rate.
+      </div>
+    </aside>
+
+    <div class="map-stage">
+      <div class="map-corner"><span class="live-dot" aria-hidden="true"></span> Choropleth · 77 areas</div>
+      <div class="map-meta">N ↑ · scale 1:60 000</div>
+      <div id="viz-map" role="img" aria-label="Map of Chicago community areas">
+        <div class="placeholder">
+          <span class="title">Choropleth slot</span>
+          <span>renders into <span style="color:var(--accent);">#viz-map</span></span>
         </div>
-        <div class="data-note-row">
-          <span class="data-note-label">Choices</span>
-          <span class="data-note-val">Analysis focuses on reported incidents, not convictions. Arrest rates are included as a secondary signal. Geographic aggregation uses community areas (77 total) rather than individual addresses for privacy and legibility.</span>
-        </div>
+      </div>
+      <div id="map-tooltip" role="tooltip" aria-hidden="true">
+        <span class="tt-area">Near North Side</span>
+        <div class="tt-row"><span>incidents</span><span class="v">128,402</span></div>
+        <div class="tt-row"><span>top category</span><span class="v">Theft</span></div>
+        <div class="tt-row"><span>arrest rate</span><span class="v">22.4%</span></div>
       </div>
     </div>
+  </div>
+</section>
 
-    <!-- ══ MAP ═══════════════════════════════════════ -->
-    <div id="tab-map" class="tab-panel">
-      <div class="section-header">
-        <h1 class="section-title">Geographic Distribution</h1>
-        <span class="section-sub">Incident mapping by location &middot; Filters coming soon</span>
+<!-- ═══════════════════════════════════════════════════════════
+     TRENDS
+     ═══════════════════════════════════════════════════════════ -->
+<section id="panel-trends" class="panel" role="tabpanel" aria-labelledby="tab-trends" hidden>
+
+  <header class="tab-head">
+    <h1>The shape <em>of a quarter</em> century.</h1>
+    <p class="deck">Four lenses on the same eight and a half million rows — by month, by hour, by category, by outcome.</p>
+  </header>
+
+  <div class="charts stagger">
+
+    <article class="chart-card">
+      <header class="chart-card-head">
+        <span class="chart-num">01 · Seasonality</span>
+        <h3 class="chart-title">A quarter-century <em>of incidents</em></h3>
+        <span class="chart-sub">Monthly volume · 2001 → present</span>
+      </header>
+      <div id="chart-seasonality" class="chart-slot" role="img" aria-label="Monthly volume time series">
+        <span class="slot-label">line · 25 yrs · monthly</span>
       </div>
-      <div class="map-frame">
-        <div id="leaflet-map"></div>
-        <div class="map-banner">
-          <div class="banner-pulse"></div>
-          <span>Geographic crime layers will appear here</span>
+      <div class="chart-legend">
+        <span class="lg"><span class="sw"></span> Reported volume</span>
+        <span class="lg"><span class="sw muted"></span> 12-month rolling mean</span>
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header class="chart-card-head">
+        <span class="chart-num">02 · Daily rhythm</span>
+        <h3 class="chart-title">The city never sleeps. <em>The crimes do.</em></h3>
+        <span class="chart-sub">Distribution by hour of day</span>
+      </header>
+      <div id="chart-time-of-day" class="chart-slot" role="img" aria-label="Distribution by hour">
+        <span class="slot-label">area · 24 hr buckets</span>
+      </div>
+      <div class="chart-legend">
+        <span class="lg"><span class="sw"></span> Share of incidents</span>
+        <span class="lg"><span class="sw muted"></span> Daylight band</span>
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header class="chart-card-head">
+        <span class="chart-num">03 · Composition</span>
+        <h3 class="chart-title">Not all crimes <em>are equal</em></h3>
+        <span class="chart-sub">Volume share by primary category</span>
+      </header>
+      <div id="chart-types" class="chart-slot" role="img" aria-label="Volume by category">
+        <span class="slot-label">bar · 34 categories</span>
+      </div>
+      <div class="chart-legend">
+        <span class="lg"><span class="sw"></span> Top 10</span>
+        <span class="lg"><span class="sw muted"></span> Long tail</span>
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header class="chart-card-head">
+        <span class="chart-num">04 · Outcomes</span>
+        <h3 class="chart-title">Who gets <em>caught</em></h3>
+        <span class="chart-sub">Arrest rate by crime type, vs the 25.1% baseline</span>
+      </header>
+      <div id="chart-arrest" class="chart-slot" role="img" aria-label="Arrest rate by type">
+        <span class="slot-label">dot · arrest rate vs baseline</span>
+      </div>
+      <div class="chart-legend">
+        <span class="lg"><span class="sw"></span> Above baseline</span>
+        <span class="lg"><span class="sw muted"></span> Below baseline · 25.1%</span>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     INSIGHTS
+     ═══════════════════════════════════════════════════════════ -->
+<section id="panel-insights" class="panel" role="tabpanel" aria-labelledby="tab-insights" hidden>
+
+  <header class="tab-head">
+    <h1>Three readings, <em>one ledger.</em></h1>
+    <p class="deck">Long-form essays drawn from the dataset — each card is a question we asked the eight and a half million rows.</p>
+  </header>
+
+  <div class="insights">
+
+    <!-- COVID -->
+    <article class="insight" id="insight-covid">
+      <div class="insight-text">
+        <span class="insight-tag"><span class="dot" aria-hidden="true"></span> Structural shift</span>
+        <h3>How the pandemic <em>redrew</em> Chicago's crime map</h3>
+        <div class="meta-row">
+          <span>Essay 01</span><span class="sep" aria-hidden="true"></span>
+          <span>2019 → 2023</span><span class="sep" aria-hidden="true"></span>
+          <span>9 min read</span>
+        </div>
+        <p>Lockdowns moved offences off the street and behind closed doors — a displacement that survived reopening. Apartment incidents climbed by two-fifths, sidewalk reports collapsed by a third, and the city's 2024 baseline now sits in a different place than its 2019 one.</p>
+        <a class="cta" href="#" aria-label="Read more about the pandemic story">Read the essay <span class="arr">→</span></a>
+      </div>
+      <div class="insight-viz">
+        <div class="viz-label"><span>Δ vs 2019</span><span>by location type</span></div>
+        <div class="metric-grid">
+          <div class="metric">
+            <span class="metric-name">Street</span>
+            <span class="metric-val up">+37.5%</span>
+            <div class="metric-bar pos"><span style="width:75%"></span></div>
+          </div>
+          <div class="metric">
+            <span class="metric-name">Apartment</span>
+            <span class="metric-val up">+40.6%</span>
+            <div class="metric-bar pos"><span style="width:81%"></span></div>
+          </div>
+          <div class="metric">
+            <span class="metric-name">Residence</span>
+            <span class="metric-val down">−26.7%</span>
+            <div class="metric-bar neg"><span style="width:53%"></span></div>
+          </div>
+          <div class="metric">
+            <span class="metric-name">Sidewalk</span>
+            <span class="metric-val down">−35.8%</span>
+            <div class="metric-bar neg"><span style="width:71%"></span></div>
+          </div>
         </div>
       </div>
-    </div>
+    </article>
 
-    <!-- ══ TRENDS ═════════════════════════════════════ -->
-    <div id="tab-trends" class="tab-panel">
-      <div class="section-header">
-        <h1 class="section-title">Temporal Patterns</h1>
-        <span class="section-sub">Seasonality &middot; Time of day &middot; Crime type breakdown</span>
-      </div>
-
-      <div class="chart-block">
-        <div class="chart-head">
-          <div class="chart-label">Seasonality of Crimes</div>
-          <div class="chart-meta">Monthly aggregates &middot; 2001–2024</div>
+    <!-- Elections -->
+    <article class="insight" id="insight-elections">
+      <div class="insight-text">
+        <span class="insight-tag"><span class="dot" aria-hidden="true"></span> Democracy &amp; safety</span>
+        <h3>Crime rhythms during <em>U.S. election</em> cycles</h3>
+        <div class="meta-row">
+          <span>Essay 02</span><span class="sep" aria-hidden="true"></span>
+          <span>2008 · 2012 · 2016 · 2020 · 2024</span><span class="sep" aria-hidden="true"></span>
+          <span>11 min read</span>
         </div>
-        <div class="chart-skeleton"></div>
+        <p>Weekly volumes during election windows compared against matched control periods, cycle by cycle. The peaks are smaller than the headlines suggest, and the dips in the days immediately after a vote tell their own story about civic attention.</p>
+        <a class="cta" href="#" aria-label="Read more about election cycles">Read the essay <span class="arr">→</span></a>
       </div>
-
-      <div class="chart-block">
-        <div class="chart-head">
-          <div class="chart-label">Crimes by Time of Day</div>
-          <div class="chart-meta">24-hour distribution &middot; all incident types</div>
+      <div class="insight-viz">
+        <div class="viz-label"><span>Election week vs control</span><span>indexed</span></div>
+        <div class="tl">
+          <div class="tl-col">
+            <div class="tl-bar"        style="height:88px; animation-delay:60ms;"></div>
+            <div class="tl-bar muted"  style="height:64px; animation-delay:90ms;"></div>
+            <span class="tl-label">'08</span>
+          </div>
+          <div class="tl-col">
+            <div class="tl-bar"        style="height:72px; animation-delay:140ms;"></div>
+            <div class="tl-bar muted"  style="height:58px; animation-delay:170ms;"></div>
+            <span class="tl-label">'12</span>
+          </div>
+          <div class="tl-col">
+            <div class="tl-bar"        style="height:96px; animation-delay:220ms;"></div>
+            <div class="tl-bar muted"  style="height:60px; animation-delay:250ms;"></div>
+            <span class="tl-label">'16</span>
+          </div>
+          <div class="tl-col">
+            <div class="tl-bar"        style="height:104px; animation-delay:300ms;"></div>
+            <div class="tl-bar muted"  style="height:54px; animation-delay:330ms;"></div>
+            <span class="tl-label">'20</span>
+          </div>
+          <div class="tl-col">
+            <div class="tl-bar"        style="height:84px; animation-delay:380ms;"></div>
+            <div class="tl-bar muted"  style="height:62px; animation-delay:410ms;"></div>
+            <span class="tl-label">'24</span>
+          </div>
         </div>
-        <div class="chart-skeleton"></div>
+        <div class="viz-label" style="border-top:1px dashed var(--rule); padding-top:14px;">
+          <span><span class="dot" style="background:var(--accent); display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Election week</span>
+          <span><span class="dot" style="background:var(--ink-4); display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Control window</span>
+        </div>
       </div>
+    </article>
 
-      <div class="chart-block">
-        <div class="chart-head">
-          <div class="chart-label">Crime Type Distribution</div>
-          <div class="chart-meta">Proportional breakdown by primary type</div>
+    <!-- Events -->
+    <article class="insight" id="insight-events">
+      <div class="insight-text">
+        <span class="insight-tag"><span class="dot" aria-hidden="true"></span> City under the spotlight</span>
+        <h3>When Chicago <em>hosts</em> the world</h3>
+        <div class="meta-row">
+          <span>Essay 03</span><span class="sep" aria-hidden="true"></span>
+          <span>NATO 2012 · marathons · championships</span><span class="sep" aria-hidden="true"></span>
+          <span>8 min read</span>
         </div>
-        <div class="chart-skeleton"></div>
+        <p>Major summits, marathons, and championship runs draw cordons of officers into the Loop and along the lakefront. The dataset records what happens to incident rates in those zones — and, more quietly, what happens in the neighbourhoods left behind.</p>
+        <a class="cta" href="#" aria-label="Read more about Chicago events">Read the essay <span class="arr">→</span></a>
       </div>
-
-      <div class="chart-block">
-        <div class="chart-head">
-          <div class="chart-label">Arrest Disparity Rates by Crime Type</div>
-          <div class="chart-meta">Arrest rate per incident &middot; stratified by offense category</div>
+      <div class="insight-viz">
+        <div class="viz-label"><span>Tourist-zone incidents</span><span>days from event</span></div>
+        <div class="scatter" aria-hidden="true">
+          <span class="pt"       style="left:8%;  top:62%;"></span>
+          <span class="pt muted" style="left:16%; top:58%;"></span>
+          <span class="pt muted" style="left:24%; top:64%;"></span>
+          <span class="pt"       style="left:32%; top:48%;"></span>
+          <span class="pt"       style="left:40%; top:30%;"><span class="pt-label">NATO summit</span></span>
+          <span class="pt"       style="left:48%; top:22%;"></span>
+          <span class="pt muted" style="left:56%; top:46%;"></span>
+          <span class="pt muted" style="left:64%; top:54%;"></span>
+          <span class="pt"       style="left:72%; top:36%;"><span class="pt-label">Marathon</span></span>
+          <span class="pt muted" style="left:80%; top:58%;"></span>
+          <span class="pt muted" style="left:88%; top:60%;"></span>
         </div>
-        <div class="chart-skeleton"></div>
+        <div class="viz-label" style="border-top:1px dashed var(--rule); padding-top:14px;">
+          <span><span class="dot" style="background:var(--accent); display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Event window</span>
+          <span><span class="dot" style="background:var(--ink-4); display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Baseline week</span>
+        </div>
       </div>
+    </article>
 
-    </div>
+  </div>
+</section>
 
-    <!-- ══ INSIGHTS ═══════════════════════════════════ -->
-    <div id="tab-insights" class="tab-panel">
-      <div class="section-header">
-        <h1 class="section-title">Analytical Insights</h1>
-        <span class="section-sub">Contextual analysis &middot; External factor correlation</span>
-      </div>
-      <div class="card-grid">
+</main>
 
-        <div class="insight-card">
-          <div class="insight-tag">Analysis 01</div>
-          <div class="insight-title">Pre &amp; Post COVID Analysis</div>
-          <div class="insight-footer"><div class="insight-dot"></div>Data coming soon</div>
-        </div>
+<!-- ═══════════════════════════════════════════════════════════
+     Footer
+     ═══════════════════════════════════════════════════════════ -->
+<footer>
+  <div>
+    Data: Chicago Data Portal · Crimes 2001 to Present · ijzp-q8t2 · updated daily.
+  </div>
+  <div class="colophon">— Crimiviz, an editorial atlas.</div>
+</footer>
 
-        <div class="insight-card">
-          <div class="insight-tag">Analysis 02</div>
-          <div class="insight-title">Election Period Impact</div>
-          <div class="insight-footer"><div class="insight-dot"></div>Data coming soon</div>
-        </div>
-
-        <div class="insight-card">
-          <div class="insight-tag">Analysis 03</div>
-          <div class="insight-title">Major Chicago Events &amp; Crime Trends</div>
-          <div class="insight-footer"><div class="insight-dot"></div>Data coming soon</div>
-        </div>
-
-      </div>
-    </div>
-
-  </main>
-
-  <script>
-    let mapInitialized = false;
-
-    function switchTab(id) {
-      document.querySelectorAll('.tab-btn').forEach(function(b) {
-        b.classList.remove('active');
-      });
-      document.querySelectorAll('.tab-panel').forEach(function(p) {
-        p.classList.remove('active');
-      });
-
-      var btn = document.querySelector('[data-tab="' + id + '"]');
-      var panel = document.getElementById('tab-' + id);
-      if (btn)   btn.classList.add('active');
-      if (panel) panel.classList.add('active');
-
-      if (id === 'map' && !mapInitialized) {
-        initMap();
-      }
-    }
-
-    function initMap() {
-      var map = L.map('leaflet-map', {
-        zoomControl: true,
-        scrollWheelZoom: true
-      }).setView([41.8827, -87.6233], 11);
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(map);
-
-      mapInitialized = true;
-    }
-
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        switchTab(btn.getAttribute('data-tab'));
-      });
-    });
-  </script>
-
+<script type="module" src="assets/js/main.js"></script>
 </body>
 </html>
