@@ -1,3 +1,8 @@
+import * as d3 from 'd3';
+import * as topojson from 'topojson-client';
+
+window.__crimiviz = { d3, topojson };
+
 const tabs   = Array.from(document.querySelectorAll('[data-tab]'));
 const links  = Array.from(document.querySelectorAll('[data-tab-link]'));
 const panels = {
