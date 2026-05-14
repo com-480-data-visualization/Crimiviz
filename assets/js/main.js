@@ -1,7 +1,19 @@
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
+import { loadJSON } from './data.js';
+import { state, bindControls, onChange } from './filters.js';
 
-window.__crimiviz = { d3, topojson };
+window.__crimiviz = { d3, topojson, state };
+
+bindControls();
+
+loadJSON('meta').then(meta => {
+  console.info(`crimiviz · ${meta.total_rows.toLocaleString()} rows · ${meta.min_date.slice(0,10)} → ${meta.max_date.slice(0,10)}`);
+});
+
+onChange(s => {
+  console.debug('filters', s);
+});
 
 const tabs   = Array.from(document.querySelectorAll('[data-tab]'));
 const links  = Array.from(document.querySelectorAll('[data-tab-link]'));
@@ -52,22 +64,18 @@ links.forEach(l => {
   });
 });
 
-const hour = document.getElementById('filter-hour');
 const hourDisp = document.getElementById('hour-display');
 
-function fmtHour(h){
-  const n = parseInt(h, 10);
-  return String(n).padStart(2, '0') + ':00';
+function renderHourDisplay(h) {
+  if (h === 'ALL') {
+    hourDisp.textContent = 'All';
+    return;
+  }
+  hourDisp.textContent = String(h).padStart(2, '0') + ':00';
 }
 
-hour.addEventListener('input', () => { hourDisp.textContent = fmtHour(hour.value); });
-hourDisp.textContent = fmtHour(hour.value);
-
-document.getElementById('filter-reset').addEventListener('click', () => {
-  document.getElementById('filter-type').value = 'ALL';
-  hour.value = 12;
-  hourDisp.textContent = fmtHour(hour.value);
-});
+onChange(s => renderHourDisplay(s.hour));
+renderHourDisplay(state.hour);
 
 const mapStage = document.querySelector('.map-stage');
 const tip = document.getElementById('map-tooltip');
