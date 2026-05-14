@@ -33,23 +33,3 @@ export function reset() {
   state.hour = 'ALL';
   emit();
 }
-
-export function bindControls() {
-  const typeEl = document.getElementById('filter-type');
-  const hourEl = document.getElementById('filter-hour');
-  const resetEl = document.getElementById('filter-reset');
-
-  if (typeEl) {
-    typeEl.addEventListener('change', () => setType(typeEl.value));
-  }
-  if (hourEl) {
-    hourEl.addEventListener('input', () => setHour(hourEl.value));
-  }
-  if (resetEl) {
-    resetEl.addEventListener('click', () => {
-      if (typeEl) typeEl.value = 'ALL';
-      if (hourEl) hourEl.value = 12;
-      reset();
-    });
-  }
-}
