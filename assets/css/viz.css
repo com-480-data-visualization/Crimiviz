@@ -430,14 +430,14 @@ svg.choropleth .area{
   fill: var(--paper-3);
   stroke: var(--ink-3);
   stroke-width: 0.4;
+  stroke-opacity: 0.55;
   vector-effect: non-scaling-stroke;
   cursor: crosshair;
-  transition: fill var(--t-fast) var(--ease);
 }
 svg.choropleth .area:hover{
-  fill: var(--accent-soft);
   stroke: var(--ink);
-  stroke-width: 0.8;
+  stroke-width: 0.9;
+  stroke-opacity: 1;
 }
 
 /* Splatter on hero */
