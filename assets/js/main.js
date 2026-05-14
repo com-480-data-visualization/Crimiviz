@@ -2,8 +2,11 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { loadJSON } from './data.js';
 import { state, setType, setHour, onChange } from './filters.js';
+import { mountMap } from './map/choropleth.js';
 
 window.__crimiviz = { d3, topojson, state };
+
+mountMap();
 
 const typeEl = document.getElementById('filter-type');
 const hourEl = document.getElementById('filter-hour');

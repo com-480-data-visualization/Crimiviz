@@ -418,6 +418,28 @@
 .drip{ display: none; }
 body[data-tab="home"] .drip{ display: block; }
 
+/* Choropleth — d3 mounts an svg.choropleth into #viz-map */
+#viz-map:has(svg.choropleth){ display: block; place-items: stretch; }
+svg.choropleth{
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  display: block;
+}
+svg.choropleth .area{
+  fill: var(--paper-3);
+  stroke: var(--ink-3);
+  stroke-width: 0.4;
+  vector-effect: non-scaling-stroke;
+  cursor: crosshair;
+  transition: fill var(--t-fast) var(--ease);
+}
+svg.choropleth .area:hover{
+  fill: var(--accent-soft);
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+
 /* Splatter on hero */
 .hero{ position: relative; }
 .hero-splat{
