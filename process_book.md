@@ -35,13 +35,27 @@ We also reorganized the layout from a single-page grid to a four-tab navigation 
 
 A hexbin would have been "the cool answer", but it suffers when overlaid on a city whose neighborhoods are widely recognized by residents. Community-area boundaries give the map a familiar grammar — a viewer recognizes "Loop", "Lincoln Park", "Englewood" — and lets us anchor narrative.
 
-### D3 over Leaflet
+### From Leaflet to D3, then to MapLibre, then to focus mode, then to a quantile density
 
-Our skeleton initially leaned on Leaflet for the map. We pivoted to a pure D3 + TopoJSON rendering because (a) Milestone 2 promised this stack, (b) a tile-backed map was distracting context for the choropleth, (c) D3 lets us animate transitions cleanly when filters change.
+Several iterations on the same panel. The skeleton shipped with Leaflet. We replaced that with a pure D3 + TopoJSON SVG choropleth on the 77 community areas — clean and lightweight, but a single level of detail. We rebuilt as a MapLibre semantic-zoom map showing 250k sampled points across the city, choropleth fading into a heatmap fading into individual points. It worked, but at street zoom the city-wide view felt overwhelming (a wall of red dots and overlapping clusters with no clear story) and the 250k Bernoulli sample dropped a lot of incidents that should have been there.
+
+The current design is **focus mode**. At city zoom we show a filterable choropleth across the 77 community areas — coloured by total volume under the active filter, faint hover outline, no individual dots. Clicking any area fits the map to that area's bounds and loads its **complete** history (every reported incident on file for that neighbourhood) on demand. The choropleth fades out, and a density layer + individual block-level points take over. A "Back to Chicago" button (and a click on the basemap outside any area) returns to the city view.
+
+This focus pattern earned us three wins.
+
+**Every incident is on disk.** Each area sits in its own GeoJSON under `data/points/{ca}.geojson`, and the front-end fetches the file for the clicked area only. The total is 7.8M reported incidents preserved without sampling. The single area that would exceed GitHub's 100 MB per-file limit if we kept it whole — Austin (CA 25, 478k incidents) — is split by year into `25_pre.geojson` (2001-2014) and `25_post.geojson` (2015-present). A `_manifest.json` keeps the front-end ignorant of the split.
+
+**The density layer is a real quantile heatmap.** A naive heatmap saturated to dark red everywhere because absolute density is high almost everywhere in Chicago. We replaced it with a custom 50 m × 45 m grid: count crimes per cell, sort the non-empty cells by count, give each one a percentile rank `t` in [0, 1], render the cell centres as `circle` features with `circle-blur ≈ 0.7` and `interpolate-hcl` colour stops. By construction the bottom 10% of cells reads as paper-white and the top 10% as dark crimson — independent of the area's absolute crime volume. The overlapping fuzzy circles blend into a continuous gradient that reads like a real heatmap rather than a quilt of polygons.
+
+**Block-level honesty.** The CPD anonymises locations to the nearest block centroid for privacy. In CA 1 alone, 50k incidents share only 7,135 unique GPS coordinates (one of them stacks 950 crimes). Rather than show 950 perfectly overlapping dots, the front-end aggregates by GPS before rendering: every unique block becomes one circle, sized and coloured by the number of incidents stacked there. At zoom 17+, the count is printed inside the circle in Open Sans Bold. Clicking a circle opens a popup that either shows the single incident, or — if the block stacks several — lists the top categories, the arrest count, the date range, and explicitly notes that the location is a block centroid.
+
+The sidebar carries the filters: a category dropdown (34 types), an hour slider (0-23), and 26 year pills (2001-2026, all on by default, with a single "All" reset). Category and hour drive the choropleth and the in-area subset; year filters the in-area subset only because the choropleth aggregate (`by_community_area.json`) has no year dimension. A small dynamic scale indicator in the top-right of the map updates with every pan and zoom (1:107k at city scale, 1:840 at street scale, 1:105 at maximum zoom).
 
 ### Pre-aggregated static JSON over live API
 
 We considered fetching aggregates live from the Socrata API on each page load. We chose to **pre-aggregate at build time** instead: a single Python script issues a handful of `$group` queries to Socrata and writes ~10 small JSON files into `data/`. The site loads these statically. Trade-offs: the data is "fresh as of last build" rather than "fresh as of now", but loading is instant, deployment is trivial (no backend), and the API isn't rate-limited by the site's traffic. The script can be re-run before the deadline.
+
+The MapLibre rebuild added a sister script: `build_points_per_area.py` reads the 1.9 GB CSV mirror, groups by community area, and writes one GeoJSON per area into `data/points/`. We considered shipping the full 8.5M as a single vector-tile pyramid (would require tippecanoe, a C tool we didn't want to introduce as a dependency) or a Bernoulli-sampled subset (clean but lossy). The per-area split solved both at once: every incident is preserved, the user only fetches the file for the area they clicked, and the front-end logic stays vanilla (a `fetch` per file plus a tiny manifest). One area exceeds GitHub's 100 MB per-file limit on its own and is split by year; the manifest hides that detail from the front-end.
 
 ### Filters: only what changes the map
 

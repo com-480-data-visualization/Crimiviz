@@ -42,10 +42,11 @@ def write_json(name: str, payload: Any) -> None:
 
 
 def build_community_area_aggregates() -> None:
-    """data/by_community_area.json — area × primary_type × hour counts.
+    """data/by_community_area.json — area × primary_type × year × hour counts.
 
-    A single SODA query gives us at most 78 * 34 * 24 = 63 648 rows.
-    We page through it because Socrata caps a single response at 50k rows.
+    Worst-case row count is 77 * 34 * 26 * 24 ≈ 1.6M; sparsity drops this
+    into the few-hundred-thousand range. Paginated through Socrata's 50k
+    response cap.
     """
     rows: list[dict[str, Any]] = []
     offset = 0
@@ -53,14 +54,15 @@ def build_community_area_aggregates() -> None:
         page = fetch({
             "$select": (
                 "community_area, primary_type, "
+                "date_extract_y(date) AS year, "
                 "date_extract_hh(date) AS hour, count(*) AS n"
             ),
             "$where": (
                 "community_area IS NOT NULL AND community_area != '0' "
                 "AND primary_type IS NOT NULL"
             ),
-            "$group": "community_area, primary_type, hour",
-            "$order": "community_area, primary_type, hour",
+            "$group": "community_area, primary_type, year, hour",
+            "$order": "community_area, primary_type, year, hour",
             "$limit": PAGE_SIZE,
             "$offset": offset,
         })
@@ -76,6 +78,7 @@ def build_community_area_aggregates() -> None:
         {
             "ca": int(float(r["community_area"])),
             "type": r["primary_type"],
+            "year": int(r["year"]),
             "hour": int(r["hour"]),
             "n": int(r["n"]),
         }

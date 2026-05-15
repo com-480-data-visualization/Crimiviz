@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/components.css">
 <link rel="stylesheet" href="assets/css/viz.css">
@@ -17,7 +19,8 @@
 {
   "imports": {
     "d3": "https://cdn.jsdelivr.net/npm/d3@7/+esm",
-    "topojson-client": "https://cdn.jsdelivr.net/npm/topojson-client@3/+esm"
+    "topojson-client": "https://cdn.jsdelivr.net/npm/topojson-client@3/+esm",
+    "maplibre-gl": "https://esm.sh/maplibre-gl@4.7.1?bundle"
   }
 }
 </script>
@@ -567,6 +570,18 @@
 
   <div class="map-layout">
     <aside class="controls" aria-label="Map filters">
+      <div id="area-panel" class="control area-panel" hidden>
+        <span class="control-label">
+          <span>Selected area</span>
+          <span class="val" id="area-volume">—</span>
+        </span>
+        <div class="area-name" id="area-name">—</div>
+        <div class="area-meta" id="area-meta">— incidents on file</div>
+        <button id="back-to-chicago" class="btn-ghost" aria-label="Back to all of Chicago">
+          <span>← Back to Chicago</span>
+        </button>
+      </div>
+
       <div class="control">
         <label class="control-label" for="filter-type">
           <span>Category</span>
@@ -595,6 +610,14 @@
       </div>
 
       <div class="control">
+        <label class="control-label">
+          <span>Years</span>
+          <button id="years-all" class="years-all" type="button" aria-label="Toggle all years">All</button>
+        </label>
+        <div id="year-grid" class="year-grid" role="group" aria-label="Filter by year"></div>
+      </div>
+
+      <div class="control">
         <label class="control-label" for="filter-hour">
           <span>Hour of day</span>
           <span class="val"><span id="hour-display">All</span></span>
@@ -612,26 +635,14 @@
         <span class="x" aria-hidden="true"></span>
       </button>
 
-      <div class="control">
-        <span class="control-label"><span>Density · per km²</span></span>
-        <div id="map-legend" class="legend" aria-label="Map color scale legend">
-          <div class="legend-bar" aria-hidden="true"></div>
-          <div class="legend-scale">
-            <span>low</span>
-            <span>median</span>
-            <span>high</span>
-          </div>
-        </div>
-      </div>
-
-      <div style="border-top:1px dashed var(--rule); padding-top:18px; font-family:var(--mono); font-size:10px; line-height:1.6; color:var(--ink-3); letter-spacing:0.04em;">
-        Hover a community area to inspect its volume, top category, and arrest rate.
+      <div class="control map-hint">
+        Click any community area on the map to zoom in and load every reported incident on file for that neighborhood.
       </div>
     </aside>
 
     <div class="map-stage">
       <div class="map-corner"><span class="live-dot" aria-hidden="true"></span> Choropleth · 77 areas</div>
-      <div class="map-meta">N ↑ · scale 1:60 000</div>
+      <div class="map-meta" id="map-scale">N&nbsp;↑ · scale 1:—</div>
       <div id="viz-map" role="img" aria-label="Map of Chicago community areas">
         <div class="placeholder">
           <span class="title">Choropleth slot</span>

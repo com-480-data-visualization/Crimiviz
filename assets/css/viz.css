@@ -418,26 +418,185 @@
 .drip{ display: none; }
 body[data-tab="home"] .drip{ display: block; }
 
-/* Choropleth — d3 mounts an svg.choropleth into #viz-map */
-#viz-map:has(svg.choropleth){ display: block; place-items: stretch; }
-svg.choropleth{
+/* MapLibre map — fills #viz-map with a paper basemap inside the editorial frame */
+#viz-map{
+  display: block;
+  place-items: stretch;
+  background: var(--paper);
+  min-height: 560px;
+  position: relative;
+}
+
+/* Selected-area panel in the controls aside (replaces the static density legend) */
+.area-panel{
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+  padding: 18px 18px 16px;
+  display: grid;
+  gap: 10px;
+}
+.area-panel[hidden]{ display: none; }
+.area-panel .area-name{
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.area-panel .area-meta{
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+#back-to-chicago{
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+#back-to-chicago:hover{
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.map-hint{
+  border-top: 1px dashed var(--rule);
+  padding-top: 18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* Year filter pills */
+.year-grid{
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+.year-pill{
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-3);
+  padding: 6px 0;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease);
+}
+.year-pill:hover{ border-color: var(--ink-2); color: var(--ink); }
+.year-pill.active{
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.years-all{
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-3);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.years-all:hover{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.maplibregl-map{
+  font-family: var(--mono);
   width: 100%;
   height: 100%;
-  min-height: 560px;
-  display: block;
+  position: absolute;
+  inset: 0;
 }
-svg.choropleth .area{
-  fill: var(--paper-3);
-  stroke: var(--ink-3);
-  stroke-width: 0.4;
-  stroke-opacity: 0.55;
-  vector-effect: non-scaling-stroke;
-  cursor: crosshair;
+.maplibregl-canvas{ outline: none; }
+.maplibregl-ctrl-attrib.maplibregl-compact{
+  background: rgba(247,243,234,0.9);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 10px;
 }
-svg.choropleth .area:hover{
-  stroke: var(--ink);
-  stroke-width: 0.9;
-  stroke-opacity: 1;
+.maplibregl-ctrl-attrib.maplibregl-compact a{ color: var(--ink); }
+.maplibregl-ctrl-group{
+  background: rgba(247,243,234,0.95);
+  border: 1px solid var(--rule);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border-radius: 0;
+}
+.maplibregl-ctrl-group button{ color: var(--ink-2); }
+.maplibregl-ctrl-group button:hover{ background: rgba(0,0,0,0.04); }
+
+/* Popup styled to match editorial body */
+.maplibregl-popup.crimiviz-popup .maplibregl-popup-tip{
+  border-top-color: var(--paper);
+  border-bottom-color: var(--paper);
+}
+.maplibregl-popup.crimiviz-popup .maplibregl-popup-content{
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 16px 18px 14px;
+  border-radius: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.maplibregl-popup.crimiviz-popup .maplibregl-popup-close-button{
+  font-size: 22px;
+  color: var(--ink-3);
+  padding: 4px 8px;
+}
+.maplibregl-popup.crimiviz-popup .maplibregl-popup-close-button:hover{
+  background: transparent;
+  color: var(--ink);
+}
+.crimiviz-popup .popup-tag{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.crimiviz-popup .popup-desc{
+  font-family: var(--serif);
+  font-size: 19px;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.crimiviz-popup .popup-row{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-top: 1px solid var(--rule-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.crimiviz-popup .popup-row span:first-child{
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+.crimiviz-popup .popup-row span:last-child{
+  color: var(--ink);
+  text-align: right;
 }
 
 /* Splatter on hero */

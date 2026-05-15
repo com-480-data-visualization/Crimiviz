@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { loadJSON } from './data.js';
-import { state, setType, setHour, onChange } from './filters.js';
-import { mountMap, updateMap } from './map/choropleth.js';
+import { state, setType, setHour, setYears, onChange } from './filters.js';
+import { mountMap } from './map/map.js';
 
 window.__crimiviz = { d3, topojson, state };
 
@@ -20,10 +20,19 @@ if (resetBtn) {
   resetBtn.addEventListener('click', () => {
     setType('ALL');
     setHour('ALL');
+    setYears(new Set(Array.from({ length: 26 }, (_, i) => 2001 + i)));
   });
 }
 
-onChange(s => updateMap(s));
+document.addEventListener('crimiviz:years-changed', () => {
+  const active = new Set();
+  document.querySelectorAll('.year-pill.active').forEach(p => active.add(+p.dataset.year));
+  setYears(active);
+});
+
+onChange(s => {
+  console.debug('filters', s);
+});
 
 mountMap();
 

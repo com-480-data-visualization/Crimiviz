@@ -32,7 +32,6 @@
         t.setAttribute('aria-selected', isActive ? 'true' : 'false');
       }
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     requestAnimationFrame(applyBleed);
   }
 
@@ -67,6 +66,7 @@
       if (typeEl) typeEl.value = 'ALL';
       if (hour) hour.value = 12;
       if (hourDisp) hourDisp.textContent = 'All';
+      document.querySelectorAll('.year-pill').forEach(p => p.classList.add('active'));
     });
   }
 
@@ -74,6 +74,31 @@
   if (tip) {
     tip.style.display = 'none';
     tip.setAttribute('aria-hidden', 'true');
+  }
+
+  const yearGrid = document.getElementById('year-grid');
+  const yearsAllBtn = document.getElementById('years-all');
+  if (yearGrid) {
+    for (let y = 2001; y <= 2026; y++) {
+      const btn = document.createElement('button');
+      btn.className = 'year-pill active';
+      btn.type = 'button';
+      btn.dataset.year = String(y);
+      btn.textContent = String(y);
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        document.dispatchEvent(new CustomEvent('crimiviz:years-changed'));
+      });
+      yearGrid.appendChild(btn);
+    }
+  }
+  if (yearsAllBtn) {
+    yearsAllBtn.addEventListener('click', () => {
+      const pills = document.querySelectorAll('.year-pill');
+      const anyInactive = Array.from(pills).some(p => !p.classList.contains('active'));
+      pills.forEach(p => p.classList.toggle('active', anyInactive));
+      document.dispatchEvent(new CustomEvent('crimiviz:years-changed'));
+    });
   }
 
   const drips = Array.from(document.querySelectorAll('.drip'));
