@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { loadJSON } from '../data.js';
 import { state } from '../filters.js';
+import { initTooltip, bindAreaHover } from './tooltip.js';
 
 const W = 800;
 const H = 600;
@@ -108,6 +109,9 @@ export async function mountMap() {
     .attr('d', pathGen)
     .attr('data-id', d => d.properties.id)
     .attr('data-name', d => d.properties.name);
+
+  await initTooltip();
+  bindAreaHover(paths, () => state, aggregates);
 
   mounted = true;
   updateMap(state);

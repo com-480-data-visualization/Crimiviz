@@ -70,22 +70,10 @@
     });
   }
 
-  const mapStage = document.querySelector('.map-stage');
   const tip = document.getElementById('map-tooltip');
-  if (mapStage && tip){
-    mapStage.addEventListener('mousemove', (e) => {
-      const r = mapStage.getBoundingClientRect();
-      tip.style.display = 'block';
-      tip.setAttribute('aria-hidden', 'false');
-      const x = e.clientX - r.left + 16;
-      const y = e.clientY - r.top + 16;
-      tip.style.left = Math.min(x, r.width  - 220) + 'px';
-      tip.style.top  = Math.min(y, r.height - 130) + 'px';
-    });
-    mapStage.addEventListener('mouseleave', () => {
-      tip.style.display = 'none';
-      tip.setAttribute('aria-hidden', 'true');
-    });
+  if (tip) {
+    tip.style.display = 'none';
+    tip.setAttribute('aria-hidden', 'true');
   }
 
   const drips = Array.from(document.querySelectorAll('.drip'));
