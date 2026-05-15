@@ -65,11 +65,8 @@
     resetBtn.addEventListener('click', () => {
       const typeEl = document.getElementById('filter-type');
       if (typeEl) typeEl.value = 'ALL';
-      if (hour) {
-        hour.value = 12;
-        hour.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      if (typeEl) typeEl.dispatchEvent(new Event('change', { bubbles: true }));
+      if (hour) hour.value = 12;
+      if (hourDisp) hourDisp.textContent = 'All';
     });
   }
 
